@@ -1,0 +1,20 @@
+# make and build files
+_*
+*~
+*.o
+*.sym
+*.asm
+*.img
+obj/
+
+# misc
+*.log
+.gdbinit
+
+# VS code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
