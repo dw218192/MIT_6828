@@ -95,8 +95,16 @@ CFLAGS += -fno-tree-ch
 # Add -fno-stack-protector if the option exists.
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
 
+# Disable PIE when possible (for Ubuntu 16.10 toolchain)
+ifneq ($(shell $(CC) -dumpspecs 2>/dev/null | grep -e '[^f]no-pie'),)
+CFLAGS += -fno-pie -no-pie
+endif
+ifneq ($(shell $(CC) -dumpspecs 2>/dev/null | grep -e '[^f]nopie'),)
+CFLAGS += -fno-pie -nopie
+endif
+
 # Common linker flags
-LDFLAGS := -m elf_i386
+LDFLAGS := -m $(shell $(LD) -V | grep elf_i386 2>/dev/null | head -n 1) #elf_i386
 
 # Linker flags for JOS user programs
 ULDFLAGS := -T user/user.ld

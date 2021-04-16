@@ -104,7 +104,7 @@ stab_binsearch(const struct Stab *stabs, int *region_left, int *region_right,
 int
 debuginfo_eip(uintptr_t addr, struct Eipdebuginfo *info)
 {
-	const struct Stab *stabs, *stab_end;
+	const struct Stab *stabs, *stab_end, *stab_cur;
 	const char *stabstr, *stabstr_end;
 	int lfile, rfile, lfun, rfun, lline, rline;
 
@@ -122,14 +122,23 @@ debuginfo_eip(uintptr_t addr, struct Eipdebuginfo *info)
 		stab_end = __STAB_END__;
 		stabstr = __STABSTR_BEGIN__;
 		stabstr_end = __STABSTR_END__;
+/*
+		for(stab_cur = stabs; stab_cur < stab_end; ++stab_cur)
+		{
+			cprintf("n_desc=%02x, n_other=%01x, n_strx=%08x, n_type=%01x, n_value=%08x\n", 
+				stab_cur->n_desc, stab_cur->n_other, stab_cur->n_strx, stab_cur->n_type, stab_cur->n_value);
+		}
+*/
 	} else {
 		// Can't search for user-level addresses yet!
-  	        panic("User address");
+  	    panic("User address");
 	}
 
 	// String table validity checks
 	if (stabstr_end <= stabstr || stabstr_end[-1] != 0)
+	{
 		return -1;
+	}
 
 	// Now we find the right stabs that define the function containing
 	// 'eip'.  First, we find the basic source file containing 'eip'.
@@ -179,7 +188,11 @@ debuginfo_eip(uintptr_t addr, struct Eipdebuginfo *info)
 	//	Look at the STABS documentation and <inc/stab.h> to find
 	//	which one.
 	// Your code here.
-
+	stab_binsearch(stabs, &lline, &rline, N_SLINE, addr);
+	if(lline <= rline)
+		info->eip_line = stabs[lline].n_desc;
+	else
+		return -1;
 
 	// Search backwards from the line number for the relevant filename
 	// stab.
