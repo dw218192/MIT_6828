@@ -10,6 +10,21 @@ obj/
 # misc
 *.log
 .gdbinit
+qemu.pcap
+qemu.pcap.*
+qemu.out
+qemu.log
+wget.log
+gradelib.pyc
+lab*-handin.tar.gz
+myapi.key
+.suf
+
+jos.in
+jos.log
+jos.out
+jos.out.*
+jos.cmd
 
 # VS code
 .vscode/*
