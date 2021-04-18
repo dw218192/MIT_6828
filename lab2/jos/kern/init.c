@@ -9,6 +9,8 @@
 #include <kern/pmap.h>
 #include <kern/kclock.h>
 
+struct Trapframe;
+extern int mon_backtrace(int argc, char **argv, struct Trapframe *tf); 
 
 void
 i386_init(void)
@@ -62,6 +64,8 @@ _panic(const char *file, int line, const char *fmt,...)
 	vcprintf(fmt, ap);
 	cprintf("\n");
 	va_end(ap);
+
+	mon_backtrace(0,0,0);
 
 dead:
 	/* break into the kernel monitor */
