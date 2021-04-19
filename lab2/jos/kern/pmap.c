@@ -168,8 +168,6 @@ mem_init(void)
 	check_page_alloc();
 	check_page();
 	
-	panic("mem_init: This function is not finished\n");
-
 	//////////////////////////////////////////////////////////////////////
 	// Now we set up virtual memory
 
@@ -180,7 +178,8 @@ mem_init(void)
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
-
+	boot_map_region(kern_pgdir, UPAGES, PTSIZE, PADDR(pages), PTE_U);
+	
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
 	// stack.  The kernel stack grows down from virtual address KSTACKTOP.
@@ -192,6 +191,7 @@ mem_init(void)
 	//       overwrite memory.  Known as a "guard page".
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
+	boot_map_region(kern_pgdir, KSTACKTOP-KSTKSIZE, KSTKSIZE, PADDR(bootstack), PTE_W);
 
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE.
@@ -201,6 +201,7 @@ mem_init(void)
 	// we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
+	boot_map_region(kern_pgdir, KERNBASE, 0x10000000, 0, PTE_W);
 
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
@@ -225,6 +226,20 @@ mem_init(void)
 
 	// Some more checks, only possible after kern_pgdir is installed.
 	check_page_installed_pgdir();
+
+	cprintf("mem management overhead:\n");
+	
+	size_t cnt = PGSIZE; //size of the pg dir
+	size_t i;
+	for(i = 0; i < (1 << (32 - PDXSHIFT)); ++ i)
+	{
+		//second level page table takes PGSIZE bytes
+		if(kern_pgdir[i] & PTE_P)
+			cnt += PGSIZE;
+	}
+	cprintf("kernal page table: %d bytes\n", cnt);
+	cprintf("phyical page bookkeeping: %d bytes\n", n);
+	cprintf("total = %dK\n", (cnt + n)/1024);
 }
 
 // --------------------------------------------------------------
@@ -448,9 +463,10 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 {
 	// Fill this function in
 	pte_t *tab_entry;
-	uintptr_t va_end = va + size - 1;
+	int npages = size / PGSIZE;
+	int i;
 
-	for (; va < va_end; va += PGSIZE, pa += PGSIZE) {
+	for (i = 0; i < npages; ++i, va += PGSIZE, pa += PGSIZE) {
 		tab_entry = pgdir_walk(pgdir, (void*) va, 1);
 		if(!tab_entry) {
 			panic("boot_map_region: no memory");
