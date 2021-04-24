@@ -106,6 +106,26 @@ strchr(const char *s, char c)
 	return 0;
 }
 
+// Returns a pointer to the first occurrence of s2 in s1
+// or a null pointer if s2 is not part of s1
+char *
+strstr(const char * s1, const char * s2)
+{
+	int i, j;
+	int n = strlen(s1);
+	int m = strlen(s2);
+	
+	for (i = 0; i <= n-m; i++)
+	{
+		for (j = 0; j < m; j++)
+			if (s1[i+j] != s2[j])
+				break;
+		if (j == m)
+			return (char *) s1 + i; // found
+	}
+	return 0; // not found
+}
+
 // Return a pointer to the first occurrence of 'c' in 's',
 // or a pointer to the string-ending null character if the string has no 'c'.
 char *

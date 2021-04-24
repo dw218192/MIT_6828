@@ -61,6 +61,7 @@ i386_detect_memory(void)
 // --------------------------------------------------------------
 
 static void boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm);
+static void boot_map_superpage(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm);
 static void check_page_free_list(bool only_low_memory);
 static void check_page_alloc(void);
 static void check_kern_pgdir(void);
@@ -126,6 +127,26 @@ mem_init(void)
 {
 	uint32_t cr0;
 	size_t n;
+
+	// Find out whether page size extension is supported by the processor (for 4MB superpage)
+	int pse_supported;
+	uint32_t cpuid_edx;
+	cpuid(CPUID_GETFEATURES, NULL, NULL, NULL, &cpuid_edx);
+	pse_supported = cpuid_edx & CPUID_FEAT_EDX_PSE;
+	
+	if(pse_supported)
+	{
+		cprintf("the system supports page size extension\n");
+		
+		//enable PSE
+		uint32_t cr4 = rcr4();
+		cr4 |= CR4_PSE;
+		lcr4(cr4);
+	}
+	else
+	{
+		cprintf("the system does not support page size extension\n");
+	}
 
 	// Find out how much memory the machine has (npages & npages_basemem).
 	i386_detect_memory();
@@ -201,7 +222,11 @@ mem_init(void)
 	// we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
-	boot_map_region(kern_pgdir, KERNBASE, 0x10000000, 0, PTE_W);
+
+	if(pse_supported)
+		boot_map_superpage(kern_pgdir, KERNBASE, 0x10000000, 0, PTE_W);
+	else
+		boot_map_region(kern_pgdir, KERNBASE, 0x10000000, 0, PTE_W);
 
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
@@ -228,14 +253,19 @@ mem_init(void)
 	check_page_installed_pgdir();
 
 	cprintf("mem management overhead:\n");
-	
-	size_t cnt = PGSIZE; //size of the pg dir
+	size_t cnt = PGSIZE; //size of the pgdir
 	size_t i;
+
+	//for each entry in pgdir
 	for(i = 0; i < (1 << (32 - PDXSHIFT)); ++ i)
 	{
 		//second level page table takes PGSIZE bytes
 		if(kern_pgdir[i] & PTE_P)
-			cnt += PGSIZE;
+		{
+			//not superpage, so add mem consumed by the second-level
+			if(!(kern_pgdir[i] & PTE_PS))
+				cnt += PGSIZE;
+		}
 	}
 	cprintf("kernal page table: %d bytes\n", cnt);
 	cprintf("phyical page bookkeeping: %d bytes\n", n);
@@ -462,6 +492,9 @@ static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
 	// Fill this function in
+	if(size & (PGSIZE-1) || va & (PGSIZE-1) || pa & (PGSIZE-1))
+		panic("boot_map_region: size=%08x, va=%08x, or pa=%08x is not %08x aligned", size, va, pa, PGSIZE);
+	
 	pte_t *tab_entry;
 	int npages = size / PGSIZE;
 	int i;
@@ -472,6 +505,33 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 			panic("boot_map_region: no memory");
 		}
 		*tab_entry = pa | perm | PTE_P;
+	}
+}
+
+//
+// Map [va, va+size) of virtual address space to physical [pa, pa+size)
+// in the page table rooted at pgdir using superpage granularity.
+// Size is a multiple of PTSIZE, and va and pa are both page-aligned.
+// Use permission bits perm|PTE_P for the entries.
+//
+// This function is only intended to set up the ``static'' mappings
+// above UTOP. As such, it should *not* change the pp_ref field on the
+// mapped pages.
+static void
+boot_map_superpage(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
+{
+	if(size & (PTSIZE-1) || va & (PTSIZE-1) || pa & (PTSIZE-1))
+		panic("boot_map_superpage: size=%08x, va=%08x, or pa=%08x is not %08x aligned", size, va, pa, PTSIZE);
+
+	int nsuperpages = size / PTSIZE;
+	int i;
+
+	for (i = 0; i < nsuperpages; ++i, va += PTSIZE, pa += PTSIZE) {
+		pde_t* dir_entry = pgdir + (int) PDX(va);
+		if(*dir_entry & PTE_P) {
+			panic("boot_map_superpage: remap");
+		}
+		*dir_entry = pa | perm | PTE_P | PTE_PS;
 	}
 }
 
@@ -801,10 +861,18 @@ check_va2pa(pde_t *pgdir, uintptr_t va)
 	pgdir = &pgdir[PDX(va)];
 	if (!(*pgdir & PTE_P))
 		return ~0;
-	p = (pte_t*) KADDR(PTE_ADDR(*pgdir));
-	if (!(p[PTX(va)] & PTE_P))
-		return ~0;
-	return PTE_ADDR(p[PTX(va)]);
+
+	if(!(*pgdir & PTE_PS))
+	{
+		p = (pte_t*) KADDR(PTE_ADDR(*pgdir));
+		if (!(p[PTX(va)] & PTE_P))
+			return ~0;
+		return PTE_ADDR(p[PTX(va)]);
+	}
+	else
+	{
+		return PTE_ADDR(*pgdir) + (PTX(va) << PTXSHIFT);
+	}
 }
 
 
