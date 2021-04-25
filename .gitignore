@@ -28,7 +28,7 @@ jos.out.*
 jos.cmd
 
 # VS code
-.vscode/*
+.vscode/
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
