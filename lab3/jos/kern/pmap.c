@@ -8,6 +8,10 @@
 
 #include <kern/pmap.h>
 #include <kern/kclock.h>
+#include <kern/env.h>
+
+// in env.c
+extern struct Env *envs;
 
 // These variables are set by i386_detect_memory()
 size_t npages;			// Amount of physical memory (in pages)
@@ -175,6 +179,10 @@ mem_init(void)
 	n = npages * sizeof(struct PageInfo);
 	pages = (struct PageInfo *) boot_alloc(n);
 	memset(pages, 0, n);
+
+	n = NENV * sizeof(struct Env);
+	envs = (struct Env *) boot_alloc(n);
+	memset(envs, 0, n);
 
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
