@@ -378,6 +378,7 @@ load_icode(struct Env *e, uint8_t *binary)
 			continue;
 		
 		region_alloc(e, (void*) ph->p_va, ph->p_memsz);
+		memset((void*) ph->p_va, 0, ph->p_memsz);
 		memcpy((void*) ph->p_va, (void*) binary + ph->p_offset, ph->p_filesz);
 	}
 
@@ -538,4 +539,3 @@ env_run(struct Env *e)
 	lcr3(PADDR(e->env_pgdir));
 	env_pop_tf(&e->env_tf);
 }
-

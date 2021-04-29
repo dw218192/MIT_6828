@@ -24,7 +24,7 @@ struct Gatedesc idt[256] = { { 0 } };
 struct Pseudodesc idt_pd = {
 	sizeof(idt) - 1, (uint32_t) idt
 };
-
+extern uint32_t handler_addrs[];
 
 static const char *trapname(int trapno)
 {
@@ -65,6 +65,15 @@ trap_init(void)
 	extern struct Segdesc gdt[];
 
 	// LAB 3: Your code here.
+	int i;
+	for(i = 0; i < NPROCESSOR_TRAPS; ++i)
+	{
+		int dpl = 0;
+		if(i == T_BRKPT)
+			dpl = 3;
+		
+		SETGATE(idt[i], 0, GD_KT, handler_addrs[i], dpl);
+	}
 
 	// Per-CPU setup 
 	trap_init_percpu();
