@@ -10,6 +10,8 @@
 #include <kern/kclock.h>
 #include <kern/env.h>
 
+#define boot_alloc(n) _boot_alloc(n, PGSIZE)
+
 // in env.c
 extern struct Env *envs;
 
@@ -86,7 +88,7 @@ static void check_page_installed_pgdir(void);
 // This function may ONLY be used during initialization,
 // before the page_free_list list has been set up.
 static void *
-boot_alloc(uint32_t n)
+_boot_alloc(uint32_t n, uint32_t alignment)
 {
 	static char *nextfree;	// virtual address of next byte of free memory
 	char *result;
@@ -98,7 +100,11 @@ boot_alloc(uint32_t n)
 	// to any kernel code or global variables.
 	if (!nextfree) {
 		extern char end[];
-		nextfree = ROUNDUP((char *) end, PGSIZE);
+		nextfree = ROUNDUP((char *) end, alignment);
+	}
+	else
+	{
+		nextfree = ROUNDUP(nextfree, alignment);
 	}
 
 	// Allocate a chunk large enough to hold 'n' bytes, then update
@@ -110,8 +116,7 @@ boot_alloc(uint32_t n)
 	if (n > 0) {
 		if((uintptr_t)nextfree + n >= KERNBASE + npages * PGSIZE)
 			panic("boot_alloc: no memory");
-		
-		nextfree = ROUNDUP(nextfree + n, PGSIZE);
+		nextfree += n;
 	}
 
 	return result;
@@ -208,6 +213,11 @@ mem_init(void)
 	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
 	boot_map_region(kern_pgdir, UPAGES, PTSIZE, PADDR(pages), PTE_U);
+	//////////////////////////////////////////////////////////////////////
+	// Map user readonly envs array at UENVS
+	// Ie.  the VA range [UENVS, UENVS + PTSIZE) should map to
+	//      the PA range [envs - KERNBASE, envs - KERNBASE + PTSIZE)
+	boot_map_region(kern_pgdir, UENVS, PTSIZE, PADDR(envs), PTE_U);
 	
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
@@ -235,6 +245,7 @@ mem_init(void)
 		boot_map_superpage(kern_pgdir, KERNBASE, 0x10000000, 0, PTE_W);
 	else
 		boot_map_region(kern_pgdir, KERNBASE, 0x10000000, 0, PTE_W);
+
 
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
@@ -842,6 +853,9 @@ check_kern_pgdir(void)
 		case PDX(UVPT):
 		case PDX(KSTACKTOP-1):
 		case PDX(UPAGES):
+			assert(pgdir[i] & PTE_P);
+			break;
+		case PDX(UENVS):
 			assert(pgdir[i] & PTE_P);
 			break;
 		default:

@@ -63,122 +63,20 @@ make[1]: Entering directory '/mnt/c/Users/tongw/OneDrive/Desktop/OS_practice/MIT
 + ld boot/boot
 + mk obj/kern/kernel.img
 make[1]: Leaving directory '/mnt/c/Users/tongw/OneDrive/Desktop/OS_practice/MIT_labs/MIT_6828/lab3/jos'
-divzero: OK (3.8s) 
-softint: OK (3.3s) 
-    (Old jos.out.softint failure log removed)
-badsegment: OK (3.1s) 
-    (Old jos.out.badsegment failure log removed)
+divzero: OK (4.4s) 
+softint: OK (3.2s) 
+badsegment: OK (2.9s) 
 Part A score: 30/30
 
-faultread: FAIL (3.1s) 
-    AssertionError: ...
-         total = 112K
-         [00000000] new env 00001000
-    GOOD Incoming TRAP frame at 0xefffffbc
-    GOOD TRAP frame at 0xf01ce000
-           edi  0x00000000
-           esi  0x00000000
-    ...
-           es   0x----0023
-           ds   0x----0023
-    GOOD   trap 0x0000000e Page Fault
-           cr2  0x00000000
-    GOOD   err  0x00000004 [user, read, not-present]
-           eip  0x0080003d
-           cs   0x----001b
-    ...
-           esp  0xeebfdfc0
-           ss   0x----0023
-    GOOD [00001000] free env 00001000
-         Destroyed the only environment - nothing more to do!
-         Welcome to the JOS kernel monitor!
-         Type 'help' for a list of commands.
-         qemu-system-i386: terminating on signal 15 from pid 12686 (make)
-    MISSING '.00001000. user fault va 00000000 ip 008.....'
-    
-    QEMU output saved to jos.out.faultread
-faultreadkernel: FAIL (3.1s) 
-    AssertionError: ...
-         total = 112K
-         [00000000] new env 00001000
-    GOOD Incoming TRAP frame at 0xefffffbc
-    GOOD TRAP frame at 0xf01ce000
-           edi  0x00000000
-           esi  0x00000000
-    ...
-           es   0x----0023
-           ds   0x----0023
-    GOOD   trap 0x0000000e Page Fault
-           cr2  0xf0100000
-    GOOD   err  0x00000005 [user, read, protection]
-           eip  0x0080003d
-           cs   0x----001b
-    ...
-           esp  0xeebfdfc0
-           ss   0x----0023
-    GOOD [00001000] free env 00001000
-         Destroyed the only environment - nothing more to do!
-         Welcome to the JOS kernel monitor!
-         Type 'help' for a list of commands.
-         qemu-system-i386: terminating on signal 15 from pid 12798 (make)
-    MISSING '.00001000. user fault va f0100000 ip 008.....'
-    
-    QEMU output saved to jos.out.faultreadkernel
-faultwrite: FAIL (2.9s) 
-    AssertionError: ...
-         total = 112K
-         [00000000] new env 00001000
-    GOOD Incoming TRAP frame at 0xefffffbc
-    GOOD TRAP frame at 0xf01ce000
-           edi  0x00000000
-           esi  0x00000000
-    ...
-           es   0x----0023
-           ds   0x----0023
-    GOOD   trap 0x0000000e Page Fault
-           cr2  0x00000000
-    GOOD   err  0x00000006 [user, write, not-present]
-           eip  0x00800037
-           cs   0x----001b
-    ...
-           esp  0xeebfdfd4
-           ss   0x----0023
-    GOOD [00001000] free env 00001000
-         Destroyed the only environment - nothing more to do!
-         Welcome to the JOS kernel monitor!
-         Type 'help' for a list of commands.
-         qemu-system-i386: terminating on signal 15 from pid 12910 (make)
-    MISSING '.00001000. user fault va 00000000 ip 008.....'
-    
-    QEMU output saved to jos.out.faultwrite
-faultwritekernel: FAIL (3.1s) 
-    AssertionError: ...
-         total = 112K
-         [00000000] new env 00001000
-    GOOD Incoming TRAP frame at 0xefffffbc
-    GOOD TRAP frame at 0xf01ce000
-           edi  0x00000000
-           esi  0x00000000
-    ...
-           es   0x----0023
-           ds   0x----0023
-    GOOD   trap 0x0000000e Page Fault
-           cr2  0xf0100000
-    GOOD   err  0x00000007 [user, write, protection]
-           eip  0x00800037
-           cs   0x----001b
-    ...
-           esp  0xeebfdfd4
-           ss   0x----0023
-    GOOD [00001000] free env 00001000
-         Destroyed the only environment - nothing more to do!
-         Welcome to the JOS kernel monitor!
-         Type 'help' for a list of commands.
-         qemu-system-i386: terminating on signal 15 from pid 13022 (make)
-    MISSING '.00001000. user fault va f0100000 ip 008.....'
-    
-    QEMU output saved to jos.out.faultwritekernel
-breakpoint: FAIL (3.0s) 
+faultread: OK (2.8s) 
+    (Old jos.out.faultread failure log removed)
+faultreadkernel: OK (3.0s) 
+    (Old jos.out.faultreadkernel failure log removed)
+faultwrite: OK (3.1s) 
+    (Old jos.out.faultwrite failure log removed)
+faultwritekernel: OK (3.1s) 
+    (Old jos.out.faultwritekernel failure log removed)
+breakpoint: FAIL (3.4s) 
     AssertionError: ...
          total = 112K
          [00000000] new env 00001000
@@ -200,11 +98,11 @@ breakpoint: FAIL (3.0s)
          Destroyed the only environment - nothing more to do!
     GOOD Welcome to the JOS kernel monitor!
          Type 'help' for a list of commands.
-         qemu-system-i386: terminating on signal 15 from pid 13134 (make)
+         qemu-system-i386: terminating on signal 15 from pid 15334 (make)
     unexpected lines in output
     
     QEMU output saved to jos.out.breakpoint
-testbss: FAIL (2.8s) 
+testbss: FAIL (3.4s) 
     AssertionError: ...
            esp  0xeebfde54
            ss   0x----0023
@@ -212,13 +110,13 @@ testbss: FAIL (2.8s)
          Destroyed the only environment - nothing more to do!
          Welcome to the JOS kernel monitor!
          Type 'help' for a list of commands.
-         qemu-system-i386: terminating on signal 15 from pid 13246 (make)
+         qemu-system-i386: terminating on signal 15 from pid 15446 (make)
     MISSING 'Making sure bss works right...'
     MISSING 'Yes, good.  Now doing a wild write off the end...'
     MISSING '.00001000. user fault va 00c..... ip 008.....'
     
     QEMU output saved to jos.out.testbss
-hello: FAIL (2.8s) 
+hello: FAIL (3.6s) 
     AssertionError: ...
          phyical page bookkeeping: 98304 bytes
          total = 112K
@@ -232,13 +130,13 @@ hello: FAIL (2.8s)
     GOOD Destroyed the only environment - nothing more to do!
          Welcome to the JOS kernel monitor!
          Type 'help' for a list of commands.
-         qemu-system-i386: terminating on signal 15 from pid 13358 (make)
+         qemu-system-i386: terminating on signal 15 from pid 15558 (make)
     MISSING 'hello, world'
     MISSING 'i am environment 00001000'
     MISSING '.00001000. exiting gracefully'
     
     QEMU output saved to jos.out.hello
-buggyhello: FAIL (3.5s) 
+buggyhello: FAIL (3.3s) 
     AssertionError: ...
            esp  0xeebfdfa4
            ss   0x----0023
@@ -246,11 +144,11 @@ buggyhello: FAIL (3.5s)
          Destroyed the only environment - nothing more to do!
          Welcome to the JOS kernel monitor!
          Type 'help' for a list of commands.
-         qemu-system-i386: terminating on signal 15 from pid 13470 (make)
+         qemu-system-i386: terminating on signal 15 from pid 15674 (make)
     MISSING '.00001000. user_mem_check assertion failure for va 00000001'
     
     QEMU output saved to jos.out.buggyhello
-buggyhello2: FAIL (2.7s) 
+buggyhello2: FAIL (3.0s) 
     AssertionError: ...
            esp  0xeebfdfa4
            ss   0x----0023
@@ -258,11 +156,11 @@ buggyhello2: FAIL (2.7s)
          Destroyed the only environment - nothing more to do!
          Welcome to the JOS kernel monitor!
          Type 'help' for a list of commands.
-         qemu-system-i386: terminating on signal 15 from pid 13582 (make)
+         qemu-system-i386: terminating on signal 15 from pid 15786 (make)
     MISSING '.00001000. user_mem_check assertion failure for va 0....000'
     
     QEMU output saved to jos.out.buggyhello2
-evilhello: FAIL (2.9s) 
+evilhello: FAIL (3.0s) 
     AssertionError: ...
            esp  0xeebfdfa4
            ss   0x----0023
@@ -270,10 +168,10 @@ evilhello: FAIL (2.9s)
          Destroyed the only environment - nothing more to do!
          Welcome to the JOS kernel monitor!
          Type 'help' for a list of commands.
-         qemu-system-i386: terminating on signal 15 from pid 13694 (make)
+         qemu-system-i386: terminating on signal 15 from pid 15898 (make)
     MISSING '.00001000. user_mem_check assertion failure for va f0100...'
     
     QEMU output saved to jos.out.evilhello
-Part B score: 0/50
+Part B score: 20/50
 
-Score: 30/80
+Score: 50/80

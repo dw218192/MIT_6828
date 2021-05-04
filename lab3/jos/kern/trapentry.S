@@ -31,6 +31,17 @@
 	.long 0
 .endm
 
+.macro traphandler_noec_nodata name num
+.text
+	.globl \name
+	.type \name, @function
+	.align 2
+	\name:
+	pushl $0
+	pushl $\num
+	jmp _alltraps
+.endm
+
 .macro traphandler name num
 .text
 	.globl \name
@@ -49,13 +60,7 @@
  */
 .macro traphandler_noec name num
 .text
-	.globl \name
-	.type \name, @function
-	.align 2
-	\name:
-	pushl $0
-	pushl $\num
-	jmp _alltraps
+	traphandler_noec_nodata \name \num
 .data
 	.long \name
 .endm
@@ -86,6 +91,9 @@ traphandler_noec T_FPERR_HANDLER, T_FPERR
 traphandler T_ALIGN_HANDLER, T_ALIGN
 traphandler_noec T_MCHK_HANDLER, T_MCHK
 traphandler_noec T_SIMDERR_HANDLER, T_SIMDERR
+
+
+traphandler_noec_nodata T_SYSCALL_HANDLER, T_SYSCALL
 
 /*
  * Lab 3: Your code here for _alltraps

@@ -4,6 +4,19 @@
 #include <inc/types.h>
 
 enum {
+	EFLAGS_TF = 1 << 8,
+	EFLAGS_IF = 1 << 9,
+	EFLAGS_IOPL = (1 << 12) | (1 << 13),
+	EFLAGS_NT = 1 << 14,
+	EFLAGS_RF = 1 << 16,
+	EFLAGS_VM = 1 << 17,
+	EFLAGS_AC = 1 << 18,
+	EFLAGS_VIF = 1 << 19,
+	EFLAGS_VIP = 1 << 20,
+	EFLAGS_ID = 1 << 21,
+};
+
+enum {
   CPUID_GETVENDORSTRING,
   CPUID_GETFEATURES,
   CPUID_GETTLB,

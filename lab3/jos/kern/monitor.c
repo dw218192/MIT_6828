@@ -26,6 +26,8 @@ static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
 	{ "backtrace", "Display stack backtrace", mon_backtrace },
+	//{ "s", "Step over", mon_step },
+	//{ "c", "Continue", mon_continue },
 	{ "pmap", "Display paging mapping information", mon_paginginfo },
 };
 
@@ -60,8 +62,67 @@ mon_kerninfo(int argc, char **argv, struct Trapframe *tf)
 int
 mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 {
-	// Your code here.
+	uintptr_t* ebp = (uintptr_t*) read_ebp();
+	struct Eipdebuginfo info;
+
+	while (ebp)
+	{
+		uintptr_t eip = ebp[1];
+		cprintf("  ebp %08x   eip %08x  args %08x %08x %08x %08x %08x\n", 
+			ebp, eip, ebp[2], ebp[3], ebp[4], ebp[5], ebp[6]);
+
+		if(debuginfo_eip(eip, &info) == 0)
+		{
+			cprintf("       %s:%d: %.*s+%d\n", 
+				info.eip_file, info.eip_line, info.eip_fn_namelen, info.eip_fn_name, eip - info.eip_fn_addr);
+		}
+		else
+		{
+			cprintf("unable to fetch function details\n");
+		}
+
+		ebp = (uintptr_t*) ebp[0];
+	}
+
 	return 0;
+}
+
+int
+mon_step(int argc, char **argv, struct Trapframe *tf)
+{
+	if((tf->tf_cs & 3) != 3)
+	{
+		cprintf("cannot single step kernel code\n");
+		return 0;
+	}
+
+	uint32_t eflags = read_eflags();
+	if(!(eflags & EFLAGS_TF))
+	{
+		eflags |= EFLAGS_TF;
+		write_eflags(eflags);
+	}
+
+	return -1; //break out of monitor
+}
+
+int
+mon_continue(int argc, char **argv, struct Trapframe *tf)
+{
+	if((tf->tf_cs & 3) != 3)
+	{
+		cprintf("cannot continue kernel code\n");
+		return 0;
+	}
+
+	uint32_t eflags = read_eflags();
+	if(eflags & EFLAGS_TF)
+	{
+		eflags ^= EFLAGS_TF;
+		write_eflags(eflags);
+	}
+
+	return -1; //break out of monitor
 }
 
 int
