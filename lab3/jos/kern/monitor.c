@@ -26,8 +26,8 @@ static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
 	{ "backtrace", "Display stack backtrace", mon_backtrace },
-	//{ "s", "Step over", mon_step },
-	//{ "c", "Continue", mon_continue },
+	{ "s", "Step over", mon_step },
+	{ "c", "Continue", mon_continue },
 	{ "pmap", "Display paging mapping information", mon_paginginfo },
 };
 
@@ -64,12 +64,22 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 {
 	uintptr_t* ebp = (uintptr_t*) read_ebp();
 	struct Eipdebuginfo info;
+	int i;
 
 	while (ebp)
 	{
 		uintptr_t eip = ebp[1];
-		cprintf("  ebp %08x   eip %08x  args %08x %08x %08x %08x %08x\n", 
-			ebp, eip, ebp[2], ebp[3], ebp[4], ebp[5], ebp[6]);
+		cprintf("  ebp %08x   eip %08x", ebp, eip);
+		
+		if(info.eip_fn_narg > 0)
+		{
+			cprintf(" args:");
+			for (i=0; i<info.eip_fn_narg; ++i)
+			{
+				cprintf(" %08x", ebp[2+i]);
+			}
+		}
+		cprintf("\n");
 
 		if(debuginfo_eip(eip, &info) == 0)
 		{
@@ -78,7 +88,7 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 		}
 		else
 		{
-			cprintf("unable to fetch function details\n");
+			cprintf("       unable to fetch function details\n");
 		}
 
 		ebp = (uintptr_t*) ebp[0];
@@ -90,39 +100,39 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 int
 mon_step(int argc, char **argv, struct Trapframe *tf)
 {
-	if((tf->tf_cs & 3) != 3)
+	if(tf->tf_trapno != T_BRKPT && tf->tf_trapno != T_DEBUG)
 	{
-		cprintf("cannot single step kernel code\n");
+		cprintf("must invoke single step at a breakpoint or debug trap\n");
 		return 0;
 	}
 
-	uint32_t eflags = read_eflags();
-	if(!(eflags & EFLAGS_TF))
+	//enable tf
+	if(!(tf->tf_eflags & EFLAGS_TF))
 	{
-		eflags |= EFLAGS_TF;
-		write_eflags(eflags);
+		tf->tf_eflags |= EFLAGS_TF;
 	}
 
-	return -1; //break out of monitor
+	//break out of monitor, give control back to trap_dispatch()
+	return -1;
 }
 
 int
 mon_continue(int argc, char **argv, struct Trapframe *tf)
 {
-	if((tf->tf_cs & 3) != 3)
+	if(tf->tf_trapno != T_BRKPT && tf->tf_trapno != T_DEBUG)
 	{
-		cprintf("cannot continue kernel code\n");
+		cprintf("must invoke continue at a breakpoint or debug trap\n");
 		return 0;
 	}
 
-	uint32_t eflags = read_eflags();
-	if(eflags & EFLAGS_TF)
+	//disable tf
+	if(tf->tf_eflags & EFLAGS_TF)
 	{
-		eflags ^= EFLAGS_TF;
-		write_eflags(eflags);
+		tf->tf_eflags ^= EFLAGS_TF;
 	}
 
-	return -1; //break out of monitor
+	//break out of monitor, give control back to trap_dispatch()
+	return -1;
 }
 
 int

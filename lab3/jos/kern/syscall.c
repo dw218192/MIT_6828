@@ -19,14 +19,8 @@ sys_cputs(const char *s, size_t len)
 {
 	// Check that the user has permission to read memory [s, s+len).
 	// Destroy the environment if not.
-
 	// LAB 3: Your code here.
-	pte_t* pte = pgdir_walk(curenv->env_pgdir, s, 0);
-	if(!(*pte & PTE_U) || !(*pte & PTE_P))
-	{
-		env_destroy(curenv);
-		return;
-	}
+	user_mem_assert(curenv, s, len, 0);
 
 	// Print the string supplied by the user.
 	cprintf("%.*s", len, s);

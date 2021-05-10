@@ -672,6 +672,73 @@ tlb_invalidate(pde_t *pgdir, void *va)
 	invlpg(va);
 }
 
+static uintptr_t user_mem_check_addr;
+
+//
+// Check that an environment is allowed to access the range of memory
+// [va, va+len) with permissions 'perm | PTE_P'.
+// Normally 'perm' will contain PTE_U at least, but this is not required.
+// 'va' and 'len' need not be page-aligned; you must test every page that
+// contains any of that range.  You will test either 'len/PGSIZE',
+// 'len/PGSIZE + 1', or 'len/PGSIZE + 2' pages.
+//
+// A user program can access a virtual address if (1) the address is below
+// ULIM, and (2) the page table gives it permission.  These are exactly
+// the tests you should implement here.
+//
+// If there is an error, set the 'user_mem_check_addr' variable to the first
+// erroneous virtual address.
+//
+// Returns 0 if the user program can access this range of addresses,
+// and -E_FAULT otherwise.
+//
+int
+user_mem_check(struct Env *env, const void *va, size_t len, int perm)
+{
+	// LAB 3: Your code here.
+	if((uintptr_t) va > (uintptr_t)~0 - len + 1)
+	{
+		user_mem_check_addr = (uintptr_t)~0;
+		return -E_FAULT; //address outside of 32-bit space
+	}
+	
+	uintptr_t start_va = (uintptr_t) ROUNDDOWN(va, PGSIZE);
+	uintptr_t end_va = (uintptr_t)va + len - 1;
+	end_va = ROUNDUP(end_va, PGSIZE);
+	
+	uintptr_t cur_va;
+	perm |= PTE_P;
+
+	for(cur_va = start_va; cur_va < end_va; cur_va += PGSIZE)
+	{
+		pte_t *pte = pgdir_walk(env->env_pgdir, (void*)cur_va, 0);
+		if((*pte & perm) != perm)
+		{
+			user_mem_check_addr = cur_va < (uintptr_t)va ? (uintptr_t)va : cur_va;
+			return -E_FAULT;
+		}
+	}
+
+	return 0;
+}
+
+//
+// Checks that environment 'env' is allowed to access the range
+// of memory [va, va+len) with permissions 'perm | PTE_U | PTE_P'.
+// If it can, then the function simply returns.
+// If it cannot, 'env' is destroyed and, if env is the current
+// environment, this function will not return.
+//
+void
+user_mem_assert(struct Env *env, const void *va, size_t len, int perm)
+{
+	if (user_mem_check(env, va, len, perm | PTE_U) < 0) {
+		cprintf("[%08x] user_mem_check assertion failure for "
+			"va %08x\n", env->env_id, user_mem_check_addr);
+		env_destroy(env);	// may not return
+	}
+}
+
 
 // --------------------------------------------------------------
 // Checking functions.

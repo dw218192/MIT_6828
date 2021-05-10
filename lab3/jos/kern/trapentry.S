@@ -113,7 +113,8 @@ traphandler_noec_nodata T_SYSCALL_HANDLER, T_SYSCALL
 	pushw $GD_KD
 	popw  %es
 
-	pushl %esp
+	movl  0x8(%esp), %ebp /* fake frame pointer for backtrace */
+	pushl %esp /* argument to trap */
 	call trap /* does not return */
 	
 	/* if trap returns, panic */
