@@ -2,6 +2,8 @@
 #define JOS_INC_TRAP_H
 
 // Trap numbers
+#define NPROCESSOR_TRAPS  20
+
 // These are processor defined:
 #define T_DIVIDE     0		// divide error
 #define T_DEBUG      1		// debug exception

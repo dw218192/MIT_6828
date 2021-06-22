@@ -52,7 +52,7 @@ enum {
 };
 
 void	mem_init(void);
-
+void    mem_init_percpu(void);
 void	page_init(void);
 struct PageInfo *page_alloc(int alloc_flags);
 void	page_free(struct PageInfo *pp);
@@ -63,10 +63,10 @@ void	page_decref(struct PageInfo *pp);
 
 void	tlb_invalidate(pde_t *pgdir, void *va);
 
-void *	mmio_map_region(physaddr_t pa, size_t size);
-
 int	user_mem_check(struct Env *env, const void *va, size_t len, int perm);
 void	user_mem_assert(struct Env *env, const void *va, size_t len, int perm);
+
+void* mmio_map_region(physaddr_t lapicaddr, size_t size);
 
 static inline physaddr_t
 page2pa(struct PageInfo *pp)

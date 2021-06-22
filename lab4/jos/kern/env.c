@@ -11,11 +11,17 @@
 #include <kern/pmap.h>
 #include <kern/trap.h>
 #include <kern/monitor.h>
-#include <kern/sched.h>
 #include <kern/cpu.h>
 #include <kern/spinlock.h>
+#include <kern/sched.h>
+#include <kern/kmalloc.h>
 
 struct Env *envs = NULL;		// All environments
+
+#define NSNAPSHOTS 10
+struct Snapshot* snapshots[NSNAPSHOTS];
+
+//struct Env *curenv = NULL;		
 static struct Env *env_free_list;	// Free environment list
 					// (linked by Env->env_link)
 
@@ -36,7 +42,7 @@ static struct Env *env_free_list;	// Free environment list
 // definition of gdt specifies the Descriptor Privilege Level (DPL)
 // of that descriptor: 0 for kernel and 3 for user.
 //
-struct Segdesc gdt[NCPU + 5] =
+struct Segdesc gdt[] =
 {
 	// 0x0 - unused (always faults -- for trapping NULL far pointers)
 	SEG_NULL,
@@ -53,9 +59,8 @@ struct Segdesc gdt[NCPU + 5] =
 	// 0x20 - user data segment
 	[GD_UD >> 3] = SEG(STA_W, 0x0, 0xffffffff, 3),
 
-	// Per-CPU TSS descriptors (starting from GD_TSS0) are initialized
-	// in trap_init_percpu()
-	[GD_TSS0 >> 3] = SEG_NULL
+	// 0x28 to ((0x28 >> 3) + NCPU - 1) << 3 - tss, initialized in trap_init_percpu()
+	[(GD_TSS0 >> 3) + NCPU - 1] = SEG_NULL,
 };
 
 struct Pseudodesc gdt_pd = {
@@ -119,6 +124,19 @@ env_init(void)
 {
 	// Set up envs array
 	// LAB 3: Your code here.
+		
+	
+	struct Env *p_env;
+	int i;
+	
+	env_free_list = &envs[0];
+	p_env = env_free_list;
+
+	for(i=1; i<NENV; ++i)
+	{
+		p_env->env_link = &envs[i];
+		p_env = p_env->env_link;
+	}
 
 	// Per-CPU part of the initialization
 	env_init_percpu();
@@ -182,6 +200,12 @@ env_setup_vm(struct Env *e)
 	//    - The functions in kern/pmap.h are handy.
 
 	// LAB 3: Your code here.
+	++ p->pp_ref;
+	e->env_pgdir = page2kva(p);
+
+	// clone kern_pgdir for mappings above UTOP
+	// don't need to deep clone it because the mappings above UTOP are static except UVPT
+	memcpy(e->env_pgdir + PDX(UTOP), kern_pgdir + PDX(UTOP), sizeof(pde_t) * (NPDENTRIES-(PDX(UTOP)+1)));
 
 	// UVPT maps the env's own page table read-only.
 	// Permissions: kernel R, user R
@@ -245,20 +269,11 @@ env_alloc(struct Env **newenv_store, envid_t parent_id)
 	e->env_tf.tf_cs = GD_UT | 3;
 	// You will set e->env_tf.tf_eip later.
 
-	// Enable interrupts while in user mode.
-	// LAB 4: Your code here.
-
-	// Clear the page fault handler until user installs one.
-	e->env_pgfault_upcall = 0;
-
-	// Also clear the IPC receiving flag.
-	e->env_ipc_recving = 0;
-
 	// commit the allocation
 	env_free_list = e->env_link;
 	*newenv_store = e;
 
-	// cprintf("[%08x] new env %08x\n", curenv ? curenv->env_id : 0, e->env_id);
+	cprintf("[%08x] new env %08x\n", curenv ? curenv->env_id : 0, e->env_id);
 	return 0;
 }
 
@@ -279,6 +294,23 @@ region_alloc(struct Env *e, void *va, size_t len)
 	//   'va' and 'len' values that are not page-aligned.
 	//   You should round va down, and round (va + len) up.
 	//   (Watch out for corner-cases!)
+	struct PageInfo *p_info;
+	int i, r;
+
+	// round up first? so that [va : va + len) will always be contained
+	uintptr_t va_end = (uintptr_t) ROUNDUP(va + len, PGSIZE);
+	uintptr_t va_cur = (uintptr_t) ROUNDDOWN(va, PGSIZE);
+
+	for(; va_cur < va_end; va_cur += PGSIZE)
+	{
+		p_info = page_alloc(0);
+		if(!p_info)
+			panic("region_alloc: no mem\n");
+		++ p_info->pp_ref;
+		
+		if((r = page_insert(e->env_pgdir, p_info, (void*) va_cur, PTE_W | PTE_U)) < 0)
+			panic("region_alloc: %e\n", r);
+	}
 }
 
 //
@@ -335,11 +367,38 @@ load_icode(struct Env *e, uint8_t *binary)
 	//  What?  (See env_run() and env_pop_tf() below.)
 
 	// LAB 3: Your code here.
+	// is this a valid ELF?
+	struct Elf *elfhdr = (struct Elf *) binary;
+	struct Proghdr *ph, *eph;
+
+	if (elfhdr->e_magic != ELF_MAGIC)
+		panic("load_icode: invalid elf binary\n");
+
+	// load each program segment (ignores ph flags)
+	ph = (struct Proghdr *) (binary + elfhdr->e_phoff);
+	eph = ph + elfhdr->e_phnum;
+
+	// switch to env's page table so we can directly use p_va after we map a region
+	lcr3(PADDR(e->env_pgdir));
+	for (; ph < eph; ph++)
+	{
+		if (ph->p_type != ELF_PROG_LOAD)
+			continue;
+		
+		region_alloc(e, (void*) ph->p_va, ph->p_memsz);
+		memset((void*) ph->p_va, 0, ph->p_memsz);
+		memcpy((void*) ph->p_va, (void*) binary + ph->p_offset, ph->p_filesz);
+	}
+
+	// set entry point
+	e->env_tf.tf_eip = (uintptr_t) elfhdr->e_entry;
 
 	// Now map one page for the program's initial stack
 	// at virtual address USTACKTOP - PGSIZE.
 
 	// LAB 3: Your code here.
+	region_alloc(e, (void*) (USTACKTOP - PGSIZE), PGSIZE);
+	lcr3(PADDR(kern_pgdir));
 }
 
 //
@@ -353,31 +412,21 @@ void
 env_create(uint8_t *binary, enum EnvType type)
 {
 	// LAB 3: Your code here.
-
-	// If this is the file server (type == ENV_TYPE_FS) give it I/O privileges.
-	// LAB 5: Your code here.
+	int r;
+	struct Env *e;
+	if((r = env_alloc(&e, 0)) < 0)
+		panic("env_create: %e\n", r);
+	
+	load_icode(e, binary);
 }
 
-//
-// Frees env e and all memory it uses.
-//
 void
-env_free(struct Env *e)
+env_flush_addr_space(struct Env *e)
 {
 	pte_t *pt;
-	uint32_t pdeno, pteno;
 	physaddr_t pa;
+	uint32_t pdeno, pteno;
 
-	// If freeing the current environment, switch to kern_pgdir
-	// before freeing the page directory, just in case the page
-	// gets reused.
-	if (e == curenv)
-		lcr3(PADDR(kern_pgdir));
-
-	// Note the environment's demise.
-	// cprintf("[%08x] free env %08x\n", curenv ? curenv->env_id : 0, e->env_id);
-
-	// Flush all mapped pages in the user portion of the address space
 	static_assert(UTOP % PTSIZE == 0);
 	for (pdeno = 0; pdeno < PDX(UTOP); pdeno++) {
 
@@ -400,6 +449,40 @@ env_free(struct Env *e)
 		page_decref(pa2page(pa));
 	}
 
+	e->env_status = ENV_NOT_RUNNABLE;
+}
+
+//
+// Frees env e and all memory it uses.
+//
+void
+env_free(struct Env *e)
+{
+	int i;
+	physaddr_t pa;
+
+	// If freeing the current environment, switch to kern_pgdir
+	// before freeing the page directory, just in case the page
+	// gets reused.
+	if (e == curenv)
+		lcr3(PADDR(kern_pgdir));
+
+	// Note the environment's demise.
+	cprintf("[%08x] free env %08x\n", curenv ? curenv->env_id : 0, e->env_id);
+
+	// Flush all snapshots associated with the env
+	for(i=0; i<NSNAPSHOTS; ++i)
+	{
+		if(snapshots[i] && snapshots[i]->envid == e->env_id)
+		{
+			snapshot_free(i);
+		}
+	}
+
+	// Flush all mapped pages in the user portion of the address space
+	static_assert(UTOP % PTSIZE == 0);
+	env_flush_addr_space(e);
+
 	// free the page directory
 	pa = PADDR(e->env_pgdir);
 	e->env_pgdir = 0;
@@ -413,15 +496,10 @@ env_free(struct Env *e)
 
 //
 // Frees environment e.
-// If e was the current env, then runs a new environment (and does not return
-// to the caller).
 //
 void
 env_destroy(struct Env *e)
 {
-	// If e is currently running on other CPUs, we change its state to
-	// ENV_DYING. A zombie environment will be freed the next time
-	// it traps to the kernel.
 	if (e->env_status == ENV_RUNNING && curenv != e) {
 		e->env_status = ENV_DYING;
 		return;
@@ -445,9 +523,6 @@ env_destroy(struct Env *e)
 void
 env_pop_tf(struct Trapframe *tf)
 {
-	// Record the CPU we are running on for user-space debugging
-	curenv->env_cpunum = cpunum();
-
 	asm volatile(
 		"\tmovl %0,%%esp\n"
 		"\tpopal\n"
@@ -486,7 +561,78 @@ env_run(struct Env *e)
 	//	e->env_tf to sensible values.
 
 	// LAB 3: Your code here.
+	// panic("env_run not yet implemented");
 
-	panic("env_run not yet implemented");
+	if (curenv != e)
+	{
+		if(curenv && curenv->env_status == ENV_RUNNING)
+			curenv->env_status = ENV_RUNNABLE;
+
+		curenv = e;
+		++ e->env_runs;
+		e->env_status = ENV_RUNNING;
+	}
+
+	unlock_kernel();
+
+	lcr3(PADDR(e->env_pgdir));
+	env_pop_tf(&e->env_tf);
 }
 
+
+
+// --------------------------------------------------------------
+// Snapshot functions
+// --------------------------------------------------------------
+struct Snapshot* id2snapshot(snapshotid_t id)
+{
+	if(id >= NSNAPSHOTS || id < 0)
+		return NULL;
+
+	return snapshots[id];
+}
+
+int snapshot_alloc(snapshotid_t* id_store)
+{
+	int i;
+	for(i=0; i<NSNAPSHOTS; ++i)
+	{
+		if(!snapshots[i])
+		{
+			snapshots[i] = (struct Snapshot*) kmalloc(sizeof(struct Snapshot));
+			*id_store = i;
+
+			return 0;
+		}
+	}
+
+	return -E_NO_MEM;
+}
+
+void _savedpages_free(struct SavedPage* cur)
+{
+	struct SavedPage *temp;
+
+	while(cur)
+	{
+		temp = cur->next;
+		if(cur->saved_page)
+			page_free(cur->saved_page);
+		kfree(cur);
+		cur = temp;
+	}
+}
+
+void snapshot_free(snapshotid_t id)
+{
+	if(id >= NSNAPSHOTS || id < 0)
+		return;
+
+	if(!snapshots[id])
+		return;
+
+	_savedpages_free(snapshots[id]->saved_pages);
+	kfree(snapshots[id]);
+
+	snapshots[id] = NULL;
+}

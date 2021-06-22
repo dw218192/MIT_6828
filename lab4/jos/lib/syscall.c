@@ -58,7 +58,7 @@ sys_env_destroy(envid_t envid)
 envid_t
 sys_getenvid(void)
 {
-	 return syscall(SYS_getenvid, 0, 0, 0, 0, 0, 0);
+	return syscall(SYS_getenvid, 0, 0, 0, 0, 0, 0);
 }
 
 void
@@ -86,17 +86,20 @@ sys_page_unmap(envid_t envid, void *va)
 }
 
 // sys_exofork is inlined in lib.h
+snapshotid_t sys_env_snapshot(envid_t env)
+{
+	return syscall(SYS_env_snapshot, 0, (uint32_t)env, 0, 0, 0, 0);
+}
+
+int sys_env_resume(envid_t env, snapshotid_t snapshot)
+{
+	return syscall(SYS_env_resume, 0, (uint32_t)env, (uint32_t)snapshot, 0, 0, 0);
+}
 
 int
 sys_env_set_status(envid_t envid, int status)
 {
 	return syscall(SYS_env_set_status, 1, envid, status, 0, 0, 0);
-}
-
-int
-sys_env_set_trapframe(envid_t envid, struct Trapframe *tf)
-{
-	return syscall(SYS_env_set_trapframe, 1, envid, (uint32_t) tf, 0, 0, 0);
 }
 
 int
@@ -116,4 +119,3 @@ sys_ipc_recv(void *dstva)
 {
 	return syscall(SYS_ipc_recv, 1, (uint32_t)dstva, 0, 0, 0, 0);
 }
-

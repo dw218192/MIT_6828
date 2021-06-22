@@ -4,6 +4,8 @@
 #include <kern/env.h>
 #include <kern/pmap.h>
 #include <kern/monitor.h>
+#include <kern/cpu.h>
+#include <kern/spinlock.h>
 
 void sched_halt(void);
 
@@ -29,9 +31,34 @@ sched_yield(void)
 	// below to halt the cpu.
 
 	// LAB 4: Your code here.
+	struct Env *cur;
 
-	// sched_halt never returns
-	sched_halt();
+	// loop from curenv+1 to curenv over the whole envs array
+	int start_idx = curenv ? curenv - envs + 1 : 0;
+	int end_idx = curenv ? curenv - envs + NENV : NENV-1;
+	int i;
+
+	idle = NULL;
+	for(i = start_idx; i <= end_idx; ++i)
+	{
+		cur = envs + (i % NENV);
+		
+		// either we are to be scheduled again (our status should be RUNNING) 
+		// or we are to yield to another runnable env
+		if(cur == curenv || cur->env_status == ENV_RUNNABLE)
+		{
+			idle = cur;
+			break;
+		}
+	}
+
+	if(!idle)
+		// sched_halt never returns
+		sched_halt();
+	else
+	{
+		env_run(idle);
+	}
 }
 
 // Halt this CPU when there is nothing to do. Wait until the

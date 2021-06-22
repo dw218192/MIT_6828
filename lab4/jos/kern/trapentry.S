@@ -4,12 +4,17 @@
 #include <inc/memlayout.h>
 #include <inc/trap.h>
 
-#include <kern/picirq.h>
-
+.globl monitor
 
 ###################################################################
 # exceptions/interrupts
 ###################################################################
+
+/* start the function pointer table in the data section */
+.data
+	.globl handler_addrs
+	.align 4
+	handler_addrs:
 
 /* TRAPHANDLER defines a globally-visible function for handling a trap.
  * It pushes a trap number onto the stack, then jumps to _alltraps.
@@ -21,28 +26,44 @@
  *   void NAME();
  * where NAME is the argument passed to TRAPHANDLER.
  */
-#define TRAPHANDLER(name, num)						\
-	.globl name;		/* define global symbol for 'name' */	\
-	.type name, @function;	/* symbol type is function */		\
-	.align 2;		/* align function definition */		\
-	name:			/* function starts here */		\
-	pushl $(num);							\
+.macro traphandler_pad
+.data
+	.long 0
+.endm
+
+.macro traphandler_noec_nodata name num
+.text
+	.globl \name
+	.type \name, @function
+	.align 2
+	\name:
+	pushl $0
+	pushl $\num
 	jmp _alltraps
+.endm
+
+.macro traphandler name num
+.text
+	.globl \name
+	.type \name, @function
+	.align 2
+	\name:
+	pushl $\num
+	jmp _alltraps
+.data
+	.long \name
+.endm
 
 /* Use TRAPHANDLER_NOEC for traps where the CPU doesn't push an error code.
  * It pushes a 0 in place of the error code, so the trap frame has the same
  * format in either case.
  */
-#define TRAPHANDLER_NOEC(name, num)					\
-	.globl name;							\
-	.type name, @function;						\
-	.align 2;							\
-	name:								\
-	pushl $0;							\
-	pushl $(num);							\
-	jmp _alltraps
-
+.macro traphandler_noec name num
 .text
+	traphandler_noec_nodata \name \num
+.data
+	.long \name
+.endm
 
 /*
  * Lab 3: Your code here for generating entry points for the different traps.
@@ -50,7 +71,56 @@
 
 
 
+traphandler_noec T_DIVIDE_HANDLER, T_DIVIDE
+traphandler_noec T_DEBUG_HANDLER, T_DEBUG
+traphandler_noec T_NMI_HANDLER, T_NMI
+traphandler_noec T_BRKPT_HANDLER, T_BRKPT
+traphandler_noec T_OFLOW_HANDLER, T_OFLOW
+traphandler_noec T_BOUND_HANDLER, T_BOUND
+traphandler_noec T_ILLOP_HANDLER, T_ILLOP
+traphandler_noec T_DEVICE_HANDLER, T_DEVICE
+traphandler T_DBLFLT_HANDLER, T_DBLFLT
+traphandler_pad
+traphandler T_TSS_HANDLER, T_TSS
+traphandler T_SEGNP_HANDLER, T_SEGNP
+traphandler T_STACK_HANDLER, T_STACK
+traphandler T_GPFLT_HANDLER, T_GPFLT
+traphandler T_PGFLT_HANDLER, T_PGFLT
+traphandler_pad
+traphandler_noec T_FPERR_HANDLER, T_FPERR
+traphandler T_ALIGN_HANDLER, T_ALIGN
+traphandler_noec T_MCHK_HANDLER, T_MCHK
+traphandler_noec T_SIMDERR_HANDLER, T_SIMDERR
+
+
+traphandler_noec_nodata T_SYSCALL_HANDLER, T_SYSCALL
+
 /*
  * Lab 3: Your code here for _alltraps
  */
 
+.text
+	_alltraps:
+	/* trapno should already been pushed */
+	pushw $0 		/* tf_padding2 */
+	pushw %ds       /* tf_ds */
+	pushw $0        /* tf_padding1 */
+	pushw %es       /* tf_es */
+	pushal 			/* struct pushregs */
+
+	pushw $GD_KD
+	popw  %ds
+	pushw $GD_KD
+	popw  %es
+
+	movl  0x8(%esp), %ebp /* fake frame pointer for backtrace */
+	pushl %esp /* argument to trap */
+	call trap /* does not return */
+	
+	/* if trap returns, panic */
+spin: /* while (1) monitor(NULL) */
+	sub    $0xc, %esp
+	push   $0x0
+	call   monitor
+	add    $0x10, %esp
+	jmp    spin

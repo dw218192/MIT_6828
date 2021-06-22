@@ -23,12 +23,14 @@ KERN_SRCFILES :=	kern/entry.S \
 			kern/kclock.c \
 			kern/picirq.c \
 			kern/printf.c \
+			kern/kmalloc.c \
 			kern/trap.c \
 			kern/trapentry.S \
 			kern/sched.c \
 			kern/syscall.c \
 			kern/kdebug.c \
 			lib/printfmt.c \
+			lib/malloc.c \
 			lib/readline.c \
 			lib/string.c
 
@@ -58,7 +60,8 @@ KERN_BINFILES :=	user/hello \
 			user/faultwritekernel
 
 # Binary files for LAB4
-KERN_BINFILES +=	user/idle \
+KERN_BINFILES +=	user/checkpoint \
+			user/idle \
 			user/yield \
 			user/dumbfork \
 			user/stresssched \
@@ -76,24 +79,6 @@ KERN_BINFILES +=	user/idle \
 			user/pingpong \
 			user/pingpongs \
 			user/primes
-# Binary files for LAB5
-KERN_BINFILES +=	user/faultio\
-	      		user/spawnfaultio\
-	      		user/testfile \
-			user/spawnhello \
-			user/icode \
-			fs/fs
-
-# Binary files for LAB5
-KERN_BINFILES +=	user/testpteshare \
-			user/testfdsharing \
-			user/testpipe \
-			user/testpiperace \
-			user/testpiperace2 \
-			user/primespipe \
-			user/testkbd \
-			user/testshell
-
 KERN_OBJFILES := $(patsubst %.c, $(OBJDIR)/%.o, $(KERN_SRCFILES))
 KERN_OBJFILES := $(patsubst %.S, $(OBJDIR)/%.o, $(KERN_OBJFILES))
 KERN_OBJFILES := $(patsubst $(OBJDIR)/lib/%, $(OBJDIR)/kern/%, $(KERN_OBJFILES))
