@@ -45,7 +45,8 @@ sched_yield(void)
 		
 		// either we are to be scheduled again (our status should be RUNNING) 
 		// or we are to yield to another runnable env
-		if(cur == curenv || cur->env_status == ENV_RUNNABLE)
+		if((cur == curenv && cur->env_status == ENV_RUNNING) || 
+			cur->env_status == ENV_RUNNABLE)
 		{
 			idle = cur;
 			break;
@@ -102,7 +103,7 @@ sched_halt(void)
 		"pushl $0\n"
 		"pushl $0\n"
 		// Uncomment the following line after completing exercise 13
-		//"sti\n"
+		"sti\n"
 		"1:\n"
 		"hlt\n"
 		"jmp 1b\n"

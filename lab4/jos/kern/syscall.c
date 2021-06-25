@@ -431,6 +431,124 @@ sys_env_set_pgfault_upcall(envid_t envid, void *func)
 	return 0;
 }
 
+// Block until a value is ready.  Record that you want to receive
+// using the env_ipc_recving and env_ipc_dstva fields of struct Env,
+// mark yourself not runnable, and then give up the CPU.
+//
+// If 'dstva' is < UTOP, then you are willing to receive a page of data.
+// 'dstva' is the virtual address at which the sent page should be mapped.
+//
+// This function only returns on error, but the system call will eventually
+// return 0 on success.
+// Return < 0 on error.  Errors are:
+//	-E_INVAL if dstva < UTOP but dstva is not page-aligned.
+static int
+sys_ipc_recv(void *dstva)
+{
+	if ((uintptr_t)dstva < UTOP && ((uintptr_t)dstva & (PGSIZE-1)))
+		return -E_INVAL;
+
+	curenv->env_status = ENV_NOT_RUNNABLE;
+	curenv->env_ipc_dstva = dstva;
+	curenv->env_ipc_value = 0;
+	curenv->env_ipc_perm = 0;
+	curenv->env_ipc_from = 0;
+	curenv->env_ipc_recving = 1;
+
+	curenv->env_tf.tf_regs.reg_eax = 0;
+	sched_yield();
+
+	return 0;
+}
+
+// Try to send 'value' to the target env 'envid'.
+// If va != 0, then also send page currently mapped at 'va',
+// so that receiver gets a duplicate mapping of the same page.
+//
+// The send fails with a return value of -E_IPC_NOT_RECV if the
+// target has not requested IPC with sys_ipc_recv.
+//
+// Otherwise, the send succeeds, and the target's ipc fields are
+// updated as follows:
+//    env_ipc_recving is set to 0 to block future sends;
+//    env_ipc_from is set to the sending envid;
+//    env_ipc_value is set to the 'value' parameter;
+//    env_ipc_perm is set to 'perm' if a page was transferred, 0 otherwise.
+// The target environment is marked runnable again, returning 0
+// from the paused ipc_recv system call.
+//
+// If the sender sends a page but the receiver isn't asking for one,
+// then no page mapping is transferred, but no error occurs.
+// The ipc doesn't happen unless no errors occur.
+//
+// Returns 0 on success where no page mapping occurs,
+// 1 on success where a page mapping occurs, and < 0 on error.
+// Errors are:
+//	-E_BAD_ENV if environment envid doesn't currently exist.
+//		(No need to check permissions.)
+//	-E_IPC_NOT_RECV if envid is not currently blocked in sys_ipc_recv,
+//		or another environment managed to send first.
+//	-E_INVAL if srcva < UTOP but srcva is not page-aligned.
+//	-E_INVAL if srcva < UTOP and perm is inappropriate
+//		(see sys_page_alloc).
+//	-E_INVAL if srcva < UTOP but srcva is not mapped in the caller's
+//		address space.
+//	-E_NO_MEM if there's not enough memory to map srcva in envid's
+//		address space.
+static int
+sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
+{
+	struct Env* e;
+	int r, ret;
+	struct PageInfo* pinfo;
+	pte_t *pte;
+
+	if((r = envid2env(envid, &e, 0)) < 0)
+		return r;
+	
+	if(!e->env_ipc_recving)
+		return -E_IPC_NOT_RECV;
+
+	if((uintptr_t)srcva < UTOP)
+	{
+		if((uintptr_t)srcva & (PGSIZE-1))
+			return -E_INVAL;
+		
+		// if perm is inappropriate
+		if(!(perm & PTE_U) || !(perm & PTE_P))
+			return -E_INVAL;
+
+		if(perm & ~PTE_SYSCALL)
+			return -E_INVAL;
+
+		if(!(pinfo = page_lookup(curenv->env_pgdir, srcva, &pte)))
+			return -E_INVAL;
+
+		if((perm & PTE_W) && !(*pte & PTE_W))
+			return -E_INVAL;
+
+		if((r = page_insert(e->env_pgdir, pinfo, srcva, perm)) < 0)
+			return r;
+		
+		e->env_ipc_perm = perm;
+		ret = 1;
+	}
+	else
+	{
+		e->env_ipc_perm = 0;
+		ret = 0;
+	}
+
+	
+	e->env_ipc_value = value;
+	e->env_ipc_from = curenv->env_id;
+	e->env_ipc_recving = 0;
+
+	e->env_status = ENV_RUNNABLE;
+
+	return ret;
+}
+
 // Dispatches to the correct kernel function, passing the arguments.
 int32_t
 syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5)
@@ -471,7 +589,9 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 			sys_yield();
 			return 0;
 		case SYS_ipc_try_send:
+			return sys_ipc_try_send((envid_t)a1, a2, (void*)a3, a4);
 		case SYS_ipc_recv:
+			return sys_ipc_recv((void*)a1);
 		default:
 			return -E_INVAL;
 	}

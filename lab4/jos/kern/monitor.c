@@ -107,9 +107,9 @@ mon_step(int argc, char **argv, struct Trapframe *tf)
 	}
 
 	//enable tf
-	if(!(tf->tf_eflags & EFLAGS_TF))
+	if(!(tf->tf_eflags & FL_TF))
 	{
-		tf->tf_eflags |= EFLAGS_TF;
+		tf->tf_eflags |= FL_TF;
 	}
 
 	//break out of monitor, give control back to trap_dispatch()
@@ -126,9 +126,9 @@ mon_continue(int argc, char **argv, struct Trapframe *tf)
 	}
 
 	//disable tf
-	if(tf->tf_eflags & EFLAGS_TF)
+	if(tf->tf_eflags & FL_TF)
 	{
-		tf->tf_eflags ^= EFLAGS_TF;
+		tf->tf_eflags ^= FL_TF;
 	}
 
 	//break out of monitor, give control back to trap_dispatch()

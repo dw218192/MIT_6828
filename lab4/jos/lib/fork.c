@@ -158,7 +158,7 @@ fork(void)
 
 	// register the page fault handler for the child
 	extern void _pgfault_upcall(void);
-	if((r = sys_env_set_pgfault_upcall(id, _pgfault_upcall)) < 0);
+	if((r = sys_env_set_pgfault_upcall(id, _pgfault_upcall)) < 0)
 		return r;
 
 	// Start the child environment running

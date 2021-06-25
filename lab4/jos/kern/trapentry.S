@@ -70,30 +70,42 @@
  */
 
 
+/* software interrupts */
+/* must use padding, to make the address fall into the right place in handler_addr array */
+/* 0  */ traphandler_noec T_DIVIDE_HANDLER, T_DIVIDE
+/* 1  */ traphandler_noec T_DEBUG_HANDLER, T_DEBUG
+/* 2  */ traphandler_noec T_NMI_HANDLER, T_NMI
+/* 3  */ traphandler_noec T_BRKPT_HANDLER, T_BRKPT
+/* 4  */ traphandler_noec T_OFLOW_HANDLER, T_OFLOW
+/* 5  */ traphandler_noec T_BOUND_HANDLER, T_BOUND
+/* 6  */ traphandler_noec T_ILLOP_HANDLER, T_ILLOP
+/* 7  */ traphandler_noec T_DEVICE_HANDLER, T_DEVICE
+/* 8  */ traphandler T_DBLFLT_HANDLER, T_DBLFLT
+/* 9  */ traphandler_pad
+/* 10 */ traphandler T_TSS_HANDLER, T_TSS
+/* 11 */ traphandler T_SEGNP_HANDLER, T_SEGNP
+/* 12 */ traphandler T_STACK_HANDLER, T_STACK
+/* 13 */ traphandler T_GPFLT_HANDLER, T_GPFLT
+/* 14 */ traphandler T_PGFLT_HANDLER, T_PGFLT
+/* 15 */ traphandler_pad
+/* 16 */ traphandler_noec T_FPERR_HANDLER, T_FPERR
+/* 17 */ traphandler T_ALIGN_HANDLER, T_ALIGN
+/* 18 */ traphandler_noec T_MCHK_HANDLER, T_MCHK
+/* 19 */ traphandler_noec T_SIMDERR_HANDLER, T_SIMDERR
 
-traphandler_noec T_DIVIDE_HANDLER, T_DIVIDE
-traphandler_noec T_DEBUG_HANDLER, T_DEBUG
-traphandler_noec T_NMI_HANDLER, T_NMI
-traphandler_noec T_BRKPT_HANDLER, T_BRKPT
-traphandler_noec T_OFLOW_HANDLER, T_OFLOW
-traphandler_noec T_BOUND_HANDLER, T_BOUND
-traphandler_noec T_ILLOP_HANDLER, T_ILLOP
-traphandler_noec T_DEVICE_HANDLER, T_DEVICE
-traphandler T_DBLFLT_HANDLER, T_DBLFLT
-traphandler_pad
-traphandler T_TSS_HANDLER, T_TSS
-traphandler T_SEGNP_HANDLER, T_SEGNP
-traphandler T_STACK_HANDLER, T_STACK
-traphandler T_GPFLT_HANDLER, T_GPFLT
-traphandler T_PGFLT_HANDLER, T_PGFLT
-traphandler_pad
-traphandler_noec T_FPERR_HANDLER, T_FPERR
-traphandler T_ALIGN_HANDLER, T_ALIGN
-traphandler_noec T_MCHK_HANDLER, T_MCHK
-traphandler_noec T_SIMDERR_HANDLER, T_SIMDERR
+/* not setting the handler_addr after this point */
+/* handler addresses below are hardcoded by the C code in trap.c */
 
-
+/* syscall handler */
 traphandler_noec_nodata T_SYSCALL_HANDLER, T_SYSCALL
+
+/* hardware interrupts */
+traphandler_noec_nodata T_IRQ_TIMER_HANDLER, (IRQ_OFFSET+IRQ_TIMER)
+traphandler_noec_nodata T_IRQ_KBD_HANDLER, (IRQ_OFFSET+IRQ_KBD)
+traphandler_noec_nodata T_IRQ_SERIAL_HANDLER, (IRQ_OFFSET+IRQ_SERIAL)
+traphandler_noec_nodata T_IRQ_SPURIOUS_HANDLER, (IRQ_OFFSET+IRQ_SPURIOUS)
+traphandler_noec_nodata T_IRQ_IDE_HANDLER, (IRQ_OFFSET+IRQ_IDE)
+traphandler_noec_nodata T_IRQ_ERROR_HANDLER, (IRQ_OFFSET+IRQ_ERROR)
 
 /*
  * Lab 3: Your code here for _alltraps

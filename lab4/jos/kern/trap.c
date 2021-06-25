@@ -13,7 +13,7 @@
 #include <kern/sched.h>
 
 // lab4: commented out to support MP
-static struct Taskstate ts;
+// static struct Taskstate ts;
 
 /* For debugging, so print_trapframe can distinguish between printing
  * a saved trapframe and printing the current trapframe and print some
@@ -28,7 +28,6 @@ struct Gatedesc idt[256] = { { 0 } };
 struct Pseudodesc idt_pd = {
 	sizeof(idt) - 1, (uint32_t) idt
 };
-extern uint32_t handler_addrs[];
 
 static const char *trapname(int trapno)
 {
@@ -67,6 +66,7 @@ void
 trap_init(void)
 {
 	extern struct Segdesc gdt[];
+	extern uint32_t handler_addrs[];
 
 	// LAB 3: Your code here.
 	int i;
@@ -80,8 +80,24 @@ trap_init(void)
 		SETGATE(idt[i], 0, GD_KT, handler_addrs[i], dpl);
 	}
 
+
 	extern void T_SYSCALL_HANDLER();
-	SETGATE(idt[T_SYSCALL], 1, GD_KT, T_SYSCALL_HANDLER, 3);
+	SETGATE(idt[T_SYSCALL], 0, GD_KT, T_SYSCALL_HANDLER, 3);
+
+	// set up external interrupts
+	extern void T_IRQ_TIMER_HANDLER();
+	extern void T_IRQ_KBD_HANDLER();
+	extern void T_IRQ_SERIAL_HANDLER();
+	extern void T_IRQ_SPURIOUS_HANDLER();
+	extern void T_IRQ_IDE_HANDLER();
+	extern void T_IRQ_ERROR_HANDLER();
+	SETGATE(idt[IRQ_OFFSET+IRQ_TIMER], 0, GD_KT, T_IRQ_TIMER_HANDLER, 0);
+	SETGATE(idt[IRQ_OFFSET+IRQ_KBD], 0, GD_KT, T_IRQ_KBD_HANDLER, 0);
+	SETGATE(idt[IRQ_OFFSET+IRQ_SERIAL], 0, GD_KT, T_IRQ_SERIAL_HANDLER, 0);
+	SETGATE(idt[IRQ_OFFSET+IRQ_SPURIOUS], 0, GD_KT, T_IRQ_SPURIOUS_HANDLER, 0);
+	SETGATE(idt[IRQ_OFFSET+IRQ_IDE], 0, GD_KT, T_IRQ_IDE_HANDLER, 0);
+	SETGATE(idt[IRQ_OFFSET+IRQ_ERROR], 0, GD_KT, T_IRQ_ERROR_HANDLER, 0);
+
 
 	// Per-CPU setup 
 	trap_init_percpu();
@@ -181,7 +197,10 @@ trap_dispatch(struct Trapframe *tf)
 				tf->tf_regs.reg_edi, 
 				tf->tf_regs.reg_esi);
 			return;
-
+		case IRQ_OFFSET + IRQ_TIMER:
+			lapic_eoi();
+			sched_yield();
+			return;
 		default:
 			break;
 	}
