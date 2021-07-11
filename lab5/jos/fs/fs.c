@@ -2,6 +2,7 @@
 #include <inc/partition.h>
 
 #include "fs.h"
+#pragma GCC diagnostic ignored "-Waddress-of-packed-member"
 
 // --------------------------------------------------------------
 // Super block
@@ -143,11 +144,46 @@ fs_init(void)
 //
 // Analogy: This is like pgdir_walk for files.
 // Hint: Don't forget to clear any block you allocate.
+
 static int
 file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool alloc)
 {
-       // LAB 5: Your code here.
-       panic("file_block_walk not implemented");
+	// LAB 5: Your code here.
+	int r;
+	uint32_t* pblk;
+
+	if(filebno < NDIRECT)
+	{
+		*ppdiskbno = f->f_direct + filebno;
+		return 0;
+	}
+	else if(filebno < NDIRECT + NINDIRECT)
+	{
+		filebno -= NDIRECT;
+
+		if(!f->f_indirect)
+		{
+			if(!alloc)
+				return -E_NOT_FOUND;
+			
+			if((r = alloc_block()) < 0)
+				return r;
+			
+			f->f_indirect = r;
+			memset(diskaddr(r), 0, BLKSIZE);
+		}
+
+		pblk = (uint32_t*)diskaddr(f->f_indirect);
+		*ppdiskbno = pblk + filebno;
+		return 0;
+	}
+	else
+	{
+		return -E_INVAL;
+	}
+
+
+    // panic("file_block_walk not implemented");
 }
 
 // Set *blk to the address in memory where the filebno'th
@@ -161,8 +197,24 @@ file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool all
 int
 file_get_block(struct File *f, uint32_t filebno, char **blk)
 {
-       // LAB 5: Your code here.
-       panic("file_get_block not implemented");
+    // LAB 5: Your code here.
+	uint32_t* pdiskbno;
+	int r;
+
+	if((r = file_block_walk(f, filebno, &pdiskbno, 1)) < 0)
+		return r;
+	
+	if(!(*pdiskbno))
+	{
+		if((r = alloc_block()) < 0)
+			return r;
+		*pdiskbno = r;
+	}
+
+	*blk = (char*) diskaddr(*pdiskbno);
+	return 0;
+
+    // panic("file_get_block not implemented");
 }
 
 // Try to find a file named "name" in dir.  If so, set *file to it.

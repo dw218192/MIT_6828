@@ -337,7 +337,24 @@ sys_env_set_trapframe(envid_t envid, struct Trapframe *tf)
 	// LAB 5: Your code here.
 	// Remember to check whether the user has supplied us with a good
 	// address!
-	panic("sys_env_set_trapframe not implemented");
+	int r;
+	struct Env *e;
+
+	r = envid2env(envid, &e, 1);
+	if(r < 0)
+		return r;
+
+	e->env_tf.tf_ds = GD_UD | 3;
+	e->env_tf.tf_es = GD_UD | 3;
+	e->env_tf.tf_ss = GD_UD | 3;
+	e->env_tf.tf_cs = GD_UT | 3;
+	e->env_tf.tf_eflags &= ~FL_IOPL_MASK;
+	e->env_tf.tf_eflags |= FL_IF;
+	e->env_tf = *tf;
+
+	return 0;
+
+	// panic("sys_env_set_trapframe not implemented");
 }
 
 // Map the page of memory at 'srcva' in srcenvid's address space
@@ -521,7 +538,7 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 
 	if((r = envid2env(envid, &e, 0)) < 0)
 		return r;
-	
+
 	if(!e->env_ipc_recving)
 		return -E_IPC_NOT_RECV;
 
@@ -543,7 +560,7 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 		if((perm & PTE_W) && !(*pte & PTE_W))
 			return -E_INVAL;
 
-		if((r = page_insert(e->env_pgdir, pinfo, srcva, perm)) < 0)
+		if((r = page_insert(e->env_pgdir, pinfo, e->env_ipc_dstva, perm)) < 0)
 			return r;
 		
 		e->env_ipc_perm = perm;
@@ -587,6 +604,8 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 			return sys_env_destroy((envid_t)a1);
 		case SYS_page_alloc:
 			return sys_page_alloc((envid_t)a1, (void*)a2, (int)a3);
+		case SYS_env_set_trapframe:
+			return sys_env_set_trapframe((envid_t)a1, (struct Trapframe*)a2);
 		case SYS_page_map:
 			return sys_page_map((envid_t)a1, (void*)a2, (envid_t)a3, (void*)a4, (int)a5);
 		case SYS_page_unmap:

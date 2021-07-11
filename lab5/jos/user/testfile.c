@@ -79,6 +79,7 @@ umain(int argc, char **argv)
 	memset(buf, 0, sizeof buf);
 	if ((r = devfile.dev_read(FVA, buf, sizeof buf)) < 0)
 		panic("file_read after file_write: %e", r);
+
 	if (r != strlen(msg))
 		panic("file_read after file_write returned wrong length: %d", r);
 	if (strcmp(buf, msg) != 0)

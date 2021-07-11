@@ -79,7 +79,14 @@ duppage(envid_t envid, unsigned pn)
 	pte = uvpt[pn];
 	perm = PTE_FLAGS(pte);
 	
-	if ((pte & PTE_W) || (pte & PTE_COW))
+	// LAB 5: if a page table entry has this bit set, the PTE should be copied directly from parent to child in both fork and spawn 
+	if (pte & PTE_SHARE)
+	{
+		if ((r = sys_page_map(0, (void*)va, envid, (void*)va, perm)) < 0)
+			return r;
+	}
+	// page is writable or COW due to previous fork
+	else if ((pte & PTE_W) || (pte & PTE_COW))
 	{
 		// map child COW
 		if ((r = sys_page_map(0, (void*)va, envid, (void*)va, PTE_P | PTE_U | PTE_COW)) < 0)
@@ -89,6 +96,7 @@ duppage(envid_t envid, unsigned pn)
 		if ((r = sys_page_map(0, (void*)va, 0, (void*)va, PTE_P | PTE_U | PTE_COW)) < 0)
 			return r;
 	}
+	// page is readonly
 	else
 	{
 		// only necessary to map child
@@ -122,8 +130,6 @@ fork(void)
 	envid_t id;
 	uintptr_t addr;
 	int r;
-	// linker symbol that marks the end of the env's memory
-	extern unsigned char end[];
 
 	// set page fault handler
 	set_pgfault_handler(pgfault);
@@ -138,8 +144,8 @@ fork(void)
 		return id;
 	}
 
-	// parent sets up child's address space
-	for (addr = UTEXT; addr < (uintptr_t)end; addr += PGSIZE)
+	// parent sets up child's address space	
+	for (addr = UTEXT; addr < USTACKTOP; addr += PGSIZE)
 	{
 		if((uvpd[PDX(addr)] & PTE_P) && (uvpt[PGNUM(addr)] & PTE_P))
 		{
@@ -147,10 +153,6 @@ fork(void)
 				return r;
 		}
 	}
-
-	// COW the stack as well
-	if((r = duppage(id, PGNUM(USTACKTOP - PGSIZE))) < 0)
-		return r;
 
 	// allocate an exception stack for the child
 	if((r = sys_page_alloc(id, (void*)(UXSTACKTOP-PGSIZE), PTE_P | PTE_U | PTE_W)) < 0)

@@ -34,7 +34,6 @@ fs_test(void)
 	if ((r = file_open("/newmotd", &f)) < 0)
 		panic("file_open /newmotd: %e", r);
 	cprintf("file_open is good\n");
-
 	if ((r = file_get_block(f, 0, &blk)) < 0)
 		panic("file_get_block: %e", r);
 	if (strcmp(blk, msg) != 0)

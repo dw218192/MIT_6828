@@ -1,0 +1,449 @@
+make clean
+make[1]: Entering directory '/mnt/c/Users/tongw/OneDrive/Desktop/OS_practice/MIT_labs/MIT_6828/lab5/jos'
+rm -rf obj .gdbinit jos.in qemu.log
+make[1]: Leaving directory '/mnt/c/Users/tongw/OneDrive/Desktop/OS_practice/MIT_labs/MIT_6828/lab5/jos'
+./grade-lab5 
+make[1]: Entering directory '/mnt/c/Users/tongw/OneDrive/Desktop/OS_practice/MIT_labs/MIT_6828/lab5/jos'
++ as kern/entry.S
++ cc kern/entrypgdir.c
++ cc kern/init.c
++ cc kern/console.c
++ cc kern/monitor.c
++ cc kern/pmap.c
++ cc kern/env.c
++ cc kern/kclock.c
++ cc kern/picirq.c
++ cc kern/printf.c
++ cc kern/trap.c
++ as kern/trapentry.S
++ cc kern/sched.c
++ cc kern/syscall.c
++ cc kern/kdebug.c
++ cc kern/kmalloc.c
++ cc lib/printfmt.c
++ cc lib/readline.c
++ cc lib/string.c
++ cc lib/malloc.c
++ as kern/mpentry.S
++ cc kern/mpconfig.c
++ cc kern/lapic.c
++ cc kern/spinlock.c
++ as[USER] lib/entry.S
++ cc[USER] lib/console.c
++ cc[USER] lib/libmain.c
++ cc[USER] lib/exit.c
++ cc[USER] lib/panic.c
++ cc[USER] lib/printf.c
++ cc[USER] lib/printfmt.c
++ cc[USER] lib/readline.c
++ cc[USER] lib/string.c
++ cc[USER] lib/syscall.c
++ cc[USER] lib/pgfault.c
++ as[USER] lib/pfentry.S
++ cc[USER] lib/fork.c
++ cc[USER] lib/ipc.c
++ cc[USER] lib/args.c
++ cc[USER] lib/fd.c
++ cc[USER] lib/file.c
++ cc[USER] lib/fprintf.c
++ cc[USER] lib/pageref.c
++ cc[USER] lib/spawn.c
++ cc[USER] lib/pipe.c
++ cc[USER] lib/wait.c
++ cc[USER] lib/malloc.c
++ ar obj/lib/libjos.a
++ cc[USER] user/hello.c
++ ld obj/user/hello
++ cc[USER] user/buggyhello.c
++ ld obj/user/buggyhello
++ cc[USER] user/buggyhello2.c
++ ld obj/user/buggyhello2
++ cc[USER] user/evilhello.c
++ ld obj/user/evilhello
++ cc[USER] user/testbss.c
++ ld obj/user/testbss
++ cc[USER] user/divzero.c
++ ld obj/user/divzero
++ cc[USER] user/breakpoint.c
++ ld obj/user/breakpoint
++ cc[USER] user/softint.c
++ ld obj/user/softint
++ cc[USER] user/badsegment.c
++ ld obj/user/badsegment
++ cc[USER] user/faultread.c
++ ld obj/user/faultread
++ cc[USER] user/faultreadkernel.c
++ ld obj/user/faultreadkernel
++ cc[USER] user/faultwrite.c
++ ld obj/user/faultwrite
++ cc[USER] user/faultwritekernel.c
++ ld obj/user/faultwritekernel
++ cc[USER] user/idle.c
++ ld obj/user/idle
++ cc[USER] user/yield.c
++ ld obj/user/yield
++ cc[USER] user/dumbfork.c
++ ld obj/user/dumbfork
++ cc[USER] user/stresssched.c
++ ld obj/user/stresssched
++ cc[USER] user/faultdie.c
++ ld obj/user/faultdie
++ cc[USER] user/faultregs.c
++ ld obj/user/faultregs
++ cc[USER] user/faultalloc.c
++ ld obj/user/faultalloc
++ cc[USER] user/faultallocbad.c
++ ld obj/user/faultallocbad
++ cc[USER] user/faultnostack.c
++ ld obj/user/faultnostack
++ cc[USER] user/faultbadhandler.c
++ ld obj/user/faultbadhandler
++ cc[USER] user/faultevilhandler.c
++ ld obj/user/faultevilhandler
++ cc[USER] user/forktree.c
++ ld obj/user/forktree
++ cc[USER] user/sendpage.c
++ ld obj/user/sendpage
++ cc[USER] user/spin.c
++ ld obj/user/spin
++ cc[USER] user/fairness.c
++ ld obj/user/fairness
++ cc[USER] user/pingpong.c
++ ld obj/user/pingpong
++ cc[USER] user/pingpongs.c
++ ld obj/user/pingpongs
++ cc[USER] user/primes.c
++ ld obj/user/primes
++ cc[USER] user/faultio.c
++ ld obj/user/faultio
++ cc[USER] user/spawnfaultio.c
++ ld obj/user/spawnfaultio
++ cc[USER] user/testfile.c
++ ld obj/user/testfile
++ cc[USER] user/spawnhello.c
++ ld obj/user/spawnhello
++ cc[USER] user/icode.c
++ ld obj/user/icode
++ cc[USER] fs/ide.c
++ cc[USER] fs/bc.c
++ cc[USER] fs/fs.c
++ cc[USER] fs/serv.c
++ cc[USER] fs/test.c
++ ld obj/fs/fs
++ cc[USER] user/testpteshare.c
++ ld obj/user/testpteshare
++ cc[USER] user/testfdsharing.c
++ ld obj/user/testfdsharing
++ cc[USER] user/testpipe.c
++ ld obj/user/testpipe
++ cc[USER] user/testpiperace.c
++ ld obj/user/testpiperace
++ cc[USER] user/testpiperace2.c
++ ld obj/user/testpiperace2
++ cc[USER] user/primespipe.c
++ ld obj/user/primespipe
++ cc[USER] user/testkbd.c
++ ld obj/user/testkbd
++ cc[USER] user/testshell.c
++ ld obj/user/testshell
++ ld obj/kern/kernel
++ as boot/boot.S
++ cc -Os boot/main.c
++ ld boot/boot
++ mk obj/kern/kernel.img
++ mk obj/fs/fsformat
++ cc[USER] user/init.c
++ ld obj/user/init
++ cc[USER] user/cat.c
++ ld obj/user/cat
++ cc[USER] user/echo.c
++ ld obj/user/echo
++ cc[USER] user/ls.c
++ ld obj/user/ls
++ cc[USER] user/lsfd.c
++ ld obj/user/lsfd
++ cc[USER] user/num.c
++ ld obj/user/num
++ cc[USER] user/sh.c
++ ld obj/user/sh
++ mk obj/fs/clean-fs.img
++ cp obj/fs/clean-fs.img obj/fs/fs.img
+make[1]: Leaving directory '/mnt/c/Users/tongw/OneDrive/Desktop/OS_practice/MIT_labs/MIT_6828/lab5/jos'
+internal FS tests [fs/test.c]: OK (15.7s) 
+  fs i/o: OK 
+  check_bc: FAIL 
+    AssertionError: ...
+         file rewrite is good
+         No runnable environments in the system!
+         Welcome to the JOS kernel monitor!
+         Type 'help' for a list of commands.
+         qemu-system-i386: terminating on signal 15 from pid 1926 (make)
+    MISSING 'block cache is good'
+    
+  check_super: OK 
+  check_bitmap: OK 
+  alloc_block: OK 
+  file_open: OK 
+  file_get_block: OK 
+  file_flush/file_truncate/file rewrite: OK 
+testfile: OK (4.2s) 
+  serve_open/file_stat/file_close: OK 
+  file_read: OK 
+  file_write: OK 
+  file_read after file_write: OK 
+  open: OK 
+  large file: OK 
+spawn via spawnhello: OK (3.6s) 
+    (Old jos.out.spawn failure log removed)
+Protection I/O space: FAIL (4.2s) 
+    AssertionError: ...
+         [00001002] free env 00001002
+         No runnable environments in the system!
+         Welcome to the JOS kernel monitor!
+         Type 'help' for a list of commands.
+         qemu-system-i386: terminating on signal 15 from pid 2638 (make)
+    MISSING 'TRAP'
+    
+    QEMU output saved to jos.out.faultio
+PTE_SHARE [testpteshare]: FAIL (3.8s) 
+    AssertionError: ...
+           cs   0x----001b
+           flag 0x00000286
+           esp  0xeebffefc
+           ss   0x----0023
+         qemu-system-i386: terminating on signal 15 from pid 2759 (make)
+    MISSING 'fork handles PTE_SHARE right'
+    MISSING 'spawn handles PTE_SHARE right'
+    
+    QEMU output saved to jos.out.pte_share
+PTE_SHARE [testfdsharing]: FAIL (4.2s) 
+    AssertionError: ...
+           cs   0x----001b
+           flag 0x00000286
+           esp  0xeebfdf88
+           ss   0x----0023
+         qemu-system-i386: terminating on signal 15 from pid 2880 (make)
+    MISSING 'read in child succeeded'
+    MISSING 'read in parent succeeded'
+    
+    QEMU output saved to jos.out.fd_share
+start the shell [icode]: FAIL (3.8s) 
+    AssertionError: ...
+         file_truncate is good
+         file rewrite is good
+    GOOD icode: read /motd
+    GOOD This is /motd, the message of the day.
+         
+         Welcome to the JOS kernel, now with a file system!
+         
+         icode: close /motd
+    GOOD icode: spawn /init
+         [00001001] new env 00001002
+    GOOD icode: exiting
+         [00001001] exiting gracefully
+         [00001001] free env 00001001
+    GOOD init: running
+    GOOD init: data seems okay
+         bss is not initialized: wanted sum 0 got ffffcfa0
+    GOOD init: args: 'init' 'initarg1' 'initarg2'
+    GOOD init: running sh
+         init: starting sh
+         [00001002] user panic in init at lib/ipc.c:71: ipc_send: bad environment
+    ...
+           cs   0x----001b
+           flag 0x00003286
+           esp  0xeebfdb00
+           ss   0x----0023
+         qemu-system-i386: terminating on signal 15 from pid 3001 (make)
+    MISSING 'init: bss seems okay'
+    MISSING '\$ '
+    
+    QEMU output saved to jos.out.icode
+testshell: FAIL (4.7s) 
+    AssertionError: ...
+           cs   0x----001b
+           flag 0x00000282
+           esp  0xeebfff68
+           ss   0x----0023
+         qemu-system-i386: terminating on signal 15 from pid 3122 (make)
+    MISSING 'shell ran correctly'
+    
+    QEMU output saved to jos.out.testshell
+primespipe: FAIL (4.5s) 
+    AssertionError: ...
+           cs   0x----001b
+           flag 0x00000282
+           esp  0xeebfff68
+           ss   0x----0023
+         qemu-system-i386: terminating on signal 15 from pid 3243 (make)
+    MISSING '2$'
+    MISSING '3$'
+    MISSING '5$'
+    MISSING '7$'
+    MISSING '521$'
+    MISSING '11$'
+    MISSING '13$'
+    MISSING '17$'
+    MISSING '19$'
+    MISSING '23$'
+    MISSING '29$'
+    MISSING '31$'
+    MISSING '547$'
+    MISSING '37$'
+    MISSING '41$'
+    MISSING '43$'
+    MISSING '557$'
+    MISSING '47$'
+    MISSING '563$'
+    MISSING '53$'
+    MISSING '569$'
+    MISSING '59$'
+    MISSING '769$'
+    MISSING '61$'
+    MISSING '577$'
+    MISSING '67$'
+    MISSING '991$'
+    MISSING '71$'
+    MISSING '73$'
+    MISSING '587$'
+    MISSING '79$'
+    MISSING '593$'
+    MISSING '83$'
+    MISSING '599$'
+    MISSING '89$'
+    MISSING '607$'
+    MISSING '97$'
+    MISSING '101$'
+    MISSING '103$'
+    MISSING '617$'
+    MISSING '107$'
+    MISSING '109$'
+    MISSING '113$'
+    MISSING '787$'
+    MISSING '631$'
+    MISSING '127$'
+    MISSING '641$'
+    MISSING '131$'
+    MISSING '601$'
+    MISSING '647$'
+    MISSING '137$'
+    MISSING '139$'
+    MISSING '653$'
+    MISSING '823$'
+    MISSING '659$'
+    MISSING '149$'
+    MISSING '151$'
+    MISSING '157$'
+    MISSING '709$'
+    MISSING '673$'
+    MISSING '163$'
+    MISSING '677$'
+    MISSING '167$'
+    MISSING '683$'
+    MISSING '173$'
+    MISSING '541$'
+    MISSING '179$'
+    MISSING '181$'
+    MISSING '701$'
+    MISSING '191$'
+    MISSING '193$'
+    MISSING '197$'
+    MISSING '199$'
+    MISSING '859$'
+    MISSING '719$'
+    MISSING '211$'
+    MISSING '727$'
+    MISSING '733$'
+    MISSING '223$'
+    MISSING '227$'
+    MISSING '229$'
+    MISSING '743$'
+    MISSING '233$'
+    MISSING '239$'
+    MISSING '241$'
+    MISSING '757$'
+    MISSING '761$'
+    MISSING '251$'
+    MISSING '257$'
+    MISSING '773$'
+    MISSING '263$'
+    MISSING '269$'
+    MISSING '271$'
+    MISSING '643$'
+    MISSING '277$'
+    MISSING '281$'
+    MISSING '283$'
+    MISSING '797$'
+    MISSING '293$'
+    MISSING '809$'
+    MISSING '811$'
+    MISSING '619$'
+    MISSING '307$'
+    MISSING '821$'
+    MISSING '311$'
+    MISSING '313$'
+    MISSING '827$'
+    MISSING '317$'
+    MISSING '829$'
+    MISSING '839$'
+    MISSING '331$'
+    MISSING '337$'
+    MISSING '739$'
+    MISSING '853$'
+    MISSING '857$'
+    MISSING '347$'
+    MISSING '349$'
+    MISSING '863$'
+    MISSING '523$'
+    MISSING '353$'
+    MISSING '571$'
+    MISSING '359$'
+    MISSING '691$'
+    MISSING '877$'
+    MISSING '367$'
+    MISSING '881$'
+    MISSING '883$'
+    MISSING '373$'
+    MISSING '887$'
+    MISSING '379$'
+    MISSING '383$'
+    MISSING '389$'
+    MISSING '907$'
+    MISSING '397$'
+    MISSING '911$'
+    MISSING '661$'
+    MISSING '401$'
+    MISSING '919$'
+    MISSING '409$'
+    MISSING '751$'
+    MISSING '929$'
+    MISSING '419$'
+    MISSING '421$'
+    MISSING '937$'
+    MISSING '941$'
+    MISSING '431$'
+    MISSING '433$'
+    MISSING '947$'
+    MISSING '439$'
+    MISSING '953$'
+    MISSING '443$'
+    MISSING '449$'
+    MISSING '967$'
+    MISSING '457$'
+    MISSING '971$'
+    MISSING '461$'
+    MISSING '463$'
+    MISSING '977$'
+    MISSING '467$'
+    MISSING '983$'
+    MISSING '479$'
+    MISSING '997$'
+    MISSING '487$'
+    MISSING '491$'
+    MISSING '613$'
+    MISSING '499$'
+    MISSING '503$'
+    MISSING '509$'
+    
+    QEMU output saved to jos.out.primespipe
+Score: 90/150
