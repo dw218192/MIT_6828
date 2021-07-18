@@ -8,11 +8,12 @@
 
 #include <kern/pmap.h>
 #include <kern/kclock.h>
-#include <kern/env.h>
 #include <kern/cpu.h>
+#include <kern/env.h>
 #include <kern/kmalloc.h>
 
 #define boot_alloc(n) _boot_alloc(n, PGSIZE)
+#define debug 0
 
 // in env.c
 extern struct Env *envs;
@@ -454,9 +455,9 @@ page_alloc(int alloc_flags)
 	// Fill this function in
 	if (!page_free_list)
 		return NULL;
-
+	
 	if (page_free_list->pp_ref != 0)
-		panic("page_alloc: pp_ref != 0");
+		panic("page_alloc: kva [%08x] pp_ref = %d", page2kva(page_free_list), page_free_list->pp_ref);
 	
 	result = page_free_list;
 	page_free_list = page_free_list->pp_link;
@@ -649,11 +650,39 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 	// not cause page_remove to free pp
 	++ pp->pp_ref; 
 	if (*tab_entry & PTE_P) {
+		if(debug)
+			cprintf("page_insert: remap [%08x] from [%08x] to [%08x]\n",
+				va,
+				KADDR(PTE_ADDR(*tab_entry)),
+				page2kva(pp));
+
 		page_remove(pgdir, va);
 	}
 
 	*tab_entry = page2pa(pp) | perm | PTE_P;
+	
+	if(debug)
+	{
+		struct Env* e;
+		envid_t eid = 0xdeadbeef;
 
+		for(e = envs; e < envs + NENV; ++e)
+		{
+			if(e->env_pgdir == pgdir)
+			{
+				eid = e->env_id;
+				break;
+			}
+		}
+		
+		if(eid == 0xdeadbeef)
+			cprintf("[unknown] ");
+		else
+			cprintf("[%08x] ", eid);
+		
+		cprintf("ADD [%08x] --> [%08x] (ref=%d)\n", va, page2kva(pp), pp->pp_ref);
+	}
+	
 	return 0;
 }
 
@@ -675,7 +704,7 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 	pte_t *entry;
 
 	entry = pgdir_walk(pgdir, va, 0);
-	if (!entry)
+	if (!entry || !(*entry & PTE_P))
 		return NULL;
 
 	if (pte_store)
@@ -703,16 +732,62 @@ void
 page_remove(pde_t *pgdir, void *va)
 {
 	// Fill this function in
+	pde_t *dir_entry;
 	pte_t *tab_entry;
+	physaddr_t pa;
 	struct PageInfo *info;
+	int i;
 
 	info = page_lookup(pgdir, va, &tab_entry);
 	if (!info)
+	{
+		if(debug)
+			cprintf("page_remove: no page mapped at [%08x]\n", va);
 		return;
-	
-	memset(tab_entry, 0, sizeof(tab_entry));
+	}
+
+	*tab_entry = 0;
 	page_decref(info);
 	tlb_invalidate(pgdir, va);
+
+	if(debug)
+	{
+		struct Env* e;
+		envid_t eid = 0xdeadbeef;
+
+		for(e = envs; e < envs + NENV; ++e)
+		{
+			if(e->env_pgdir == pgdir)
+			{
+				eid = e->env_id;
+				break;
+			}
+		}
+		
+		if(eid == 0xdeadbeef)
+			cprintf("[unknown] ");
+		else
+			cprintf("[%08x] ", eid);
+		
+		cprintf("RMV [%08x] --> [%08x] (ref=%d)\n", va, page2kva(info), info->pp_ref);
+	}
+
+
+	// free 2nd level page table if all entries in it are 0
+	/*
+	dir_entry = pgdir + (int) PDX(va);
+	pa = PTE_ADDR(*dir_entry);
+	tab_entry = KADDR(pa);
+
+	for(i=0; i<NPTENTRIES; ++i)
+	{
+		if(tab_entry[i])
+			return;
+	}
+
+	*dir_entry = 0;
+	page_decref(pa2page(pa));
+	*/
 }
 
 //
@@ -865,6 +940,7 @@ check_page_free_list(bool only_low_memory)
 
 	first_free_page = (char *) boot_alloc(0);
 	for (pp = page_free_list; pp; pp = pp->pp_link) {
+		assert(pp->pp_ref == 0);
 		// check that we didn't corrupt the free list itself
 		assert(pp >= pages);
 		assert(pp < pages + npages);

@@ -60,6 +60,7 @@ pipe(int pfd[2])
 
 	pfd[0] = fd2num(fd0);
 	pfd[1] = fd2num(fd1);
+
 	return 0;
 
     err3:

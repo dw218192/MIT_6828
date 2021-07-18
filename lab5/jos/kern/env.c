@@ -16,6 +16,8 @@
 #include <kern/sched.h>
 #include <kern/kmalloc.h>
 
+#define debug 0
+
 struct Env *envs = NULL;		// All environments
 
 #define NSNAPSHOTS 10
@@ -206,6 +208,7 @@ env_setup_vm(struct Env *e)
 	// clone kern_pgdir for mappings above UTOP
 	// don't need to deep clone it because the mappings above UTOP are static except UVPT
 	memcpy(e->env_pgdir + PDX(UTOP), kern_pgdir + PDX(UTOP), sizeof(pde_t) * (NPDENTRIES-(PDX(UTOP)+1)));
+	// memcpy(e->env_pgdir, kern_pgdir, sizeof(pde_t) * NPDENTRIES);
 
 	// UVPT maps the env's own page table read-only.
 	// Permissions: kernel R, user R
@@ -276,8 +279,9 @@ env_alloc(struct Env **newenv_store, envid_t parent_id)
 	// commit the allocation
 	env_free_list = e->env_link;
 	*newenv_store = e;
-
-	cprintf("[%08x] new env %08x\n", curenv ? curenv->env_id : 0, e->env_id);
+	
+	if(debug)
+		cprintf("[%08x] new env %08x\n", curenv ? curenv->env_id : 0, e->env_id);
 	return 0;
 }
 
@@ -310,7 +314,6 @@ region_alloc(struct Env *e, void *va, size_t len)
 		p_info = page_alloc(0);
 		if(!p_info)
 			panic("region_alloc: no mem\n");
-		++ p_info->pp_ref;
 		
 		if((r = page_insert(e->env_pgdir, p_info, (void*) va_cur, PTE_W | PTE_U)) < 0)
 			panic("region_alloc: %e\n", r);
@@ -476,8 +479,9 @@ env_free(struct Env *e)
 	if (e == curenv)
 		lcr3(PADDR(kern_pgdir));
 
-	// Note the environment's demise.
-	cprintf("[%08x] free env %08x\n", curenv ? curenv->env_id : 0, e->env_id);
+	// Note the environment's demise
+	if(debug)
+		cprintf("[%08x] free env %08x\n", curenv ? curenv->env_id : 0, e->env_id);
 
 	// Flush all snapshots associated with the env
 	for(i=0; i<NSNAPSHOTS; ++i)

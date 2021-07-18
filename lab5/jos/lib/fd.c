@@ -112,6 +112,7 @@ fd_close(struct Fd *fd, bool must_exist)
 		else
 			r = 0;
 	}
+	
 	// Make sure fd is unmapped.  Might be a no-op if
 	// (*dev->dev_close)(fd) already unmapped it.
 	(void) sys_page_unmap(0, fd);
@@ -150,6 +151,7 @@ close(int fdnum)
 {
 	struct Fd *fd;
 	int r;
+	// cprintf("[%08x] close fd %d\n", thisenv->env_id, fdnum);
 
 	if ((r = fd_lookup(fdnum, &fd)) < 0)
 		return r;
@@ -191,6 +193,8 @@ dup(int oldfdnum, int newfdnum)
 			goto err;
 	if ((r = sys_page_map(0, oldfd, 0, newfd, uvpt[PGNUM(oldfd)] & PTE_SYSCALL)) < 0)
 		goto err;
+	
+	// cprintf("dup fd [%08x]-->[%08x] to [%08x]-->[%08x]\n", oldfd, uvpt[PGNUM(oldfd)], newfd, uvpt[PGNUM(newfd)]);
 
 	return newfdnum;
 

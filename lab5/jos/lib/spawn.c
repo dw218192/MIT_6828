@@ -8,7 +8,7 @@
 // Helper functions for spawn.
 static int init_stack(envid_t child, const char **argv, uintptr_t *init_esp);
 static int map_segment(envid_t child, uintptr_t va, size_t memsz,
-		       int fd, size_t filesz, off_t fileoffset, int perm);
+		       int fd, size_t filesz, off_t fileoffset, int perm, int zero_init);
 static int copy_shared_pages(envid_t child);
 
 // Spawn a child process from a program image loaded from the file system.
@@ -27,6 +27,7 @@ spawn(const char *prog, const char **argv)
 	struct Elf *elf;
 	struct Proghdr *ph;
 	int perm;
+	int zero_init;
 
 	uintptr_t tmp;
 
@@ -86,7 +87,6 @@ spawn(const char *prog, const char **argv)
 	//     correct initial eip and esp values in the child.
 	//
 	//   - Start the child process running with sys_env_set_status().
-
 	if ((r = open(prog, O_RDONLY)) < 0)
 		return r;
 	fd = r;
@@ -120,10 +120,19 @@ spawn(const char *prog, const char **argv)
 		if (ph->p_type != ELF_PROG_LOAD)
 			continue;
 		perm = PTE_P | PTE_U;
+		
 		if (ph->p_flags & ELF_PROG_FLAG_WRITE)
+		{
 			perm |= PTE_W;
+			zero_init = 1;
+		}
+		else
+		{
+			zero_init = 0;
+		}
+
 		if ((r = map_segment(child, ph->p_va, ph->p_memsz,
-				     fd, ph->p_filesz, ph->p_offset, perm)) < 0)
+				     fd, ph->p_filesz, ph->p_offset, perm, zero_init)) < 0)
 			goto error;
 	}
 	close(fd);
@@ -266,12 +275,12 @@ error:
 
 static int
 map_segment(envid_t child, uintptr_t va, size_t memsz,
-	int fd, size_t filesz, off_t fileoffset, int perm)
+	int fd, size_t filesz, off_t fileoffset, int perm, int zero_init)
 {
 	int i, r;
 	void *blk;
 
-	//cprintf("map_segment %x+%x\n", va, memsz);
+	// cprintf("map_segment %x+%x\n", va, memsz);
 
 	if ((i = PGOFF(va))) {
 		va -= i;
@@ -285,14 +294,29 @@ map_segment(envid_t child, uintptr_t va, size_t memsz,
 			// allocate a blank page
 			if ((r = sys_page_alloc(child, (void*) (va + i), perm)) < 0)
 				return r;
+			
+			if(zero_init)
+			{
+				if ((r = sys_page_map(child, (void*) (va + i), 0, UTEMP, PTE_P|PTE_U|PTE_W)) < 0)
+					panic("spawn: sys_page_map data: %e", r);
+				memset((void*)UTEMP, 0, PGSIZE);
+				sys_page_unmap(0, UTEMP);
+			}
 		} else {
 			// from file
 			if ((r = sys_page_alloc(0, UTEMP, PTE_P|PTE_U|PTE_W)) < 0)
 				return r;
 			if ((r = seek(fd, fileoffset + i)) < 0)
 				return r;
+			
+			if(zero_init)
+			{
+				memset((void*)UTEMP, 0, PGSIZE);
+			}
+
 			if ((r = readn(fd, UTEMP, MIN(PGSIZE, filesz-i))) < 0)
 				return r;
+			
 			if ((r = sys_page_map(0, UTEMP, child, (void*) (va + i), perm)) < 0)
 				panic("spawn: sys_page_map data: %e", r);
 			sys_page_unmap(0, UTEMP);

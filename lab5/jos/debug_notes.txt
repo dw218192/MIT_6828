@@ -1,0 +1,22 @@
+control flow
+pipe()
+close()
+    fd_close()
+        dev_close()
+            sys_page_unmap()
+                page_remove()
+                    page_lookup()
+        
+        sys_page_unmap()
+            page_remove()
+                page_lookup()
+
+page_remove() frees a reserved page (pp = f0288000)
+
+known:
+f0288000 was not allocated
+
+cause:
+two system unmaps,
+page_lookup() does not check PTE_P in the pte entry
+which causes the 

@@ -409,7 +409,7 @@ sys_page_map(envid_t src_envid, void *src_pg,
 	
 	if(perm & PTE_W && !(*src_pte & PTE_W))
 		return -E_INVAL;
-
+	
 	r = page_insert(dst_e->env_pgdir, pginfo, dst_pg, perm);
 	if(r < 0)
 		return r;
