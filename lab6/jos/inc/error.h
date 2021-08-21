@@ -18,9 +18,10 @@ enum {
 	E_EOF		,	// Unexpected end of file
 	
 	// Network error codes
-	E_NO_FREE_TX_DESC ,  // No free transmission descriptor
+	E_TX_FULL ,  // No free transmission descriptor
 	E_PKT_TOO_LONG ,     // Packet is too large
 
+	E_RX_EMPTY ,  // No packet in the receive queue
 
 	// File system error codes -- only seen in user-level
 	E_NO_DISK	,	// No free space left on disk

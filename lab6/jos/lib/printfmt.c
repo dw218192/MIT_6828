@@ -29,8 +29,9 @@ static const char * const error_string[MAXERROR] =
 	[E_IPC_NOT_RECV]= "env is not recving",
 	[E_EOF]		= "unexpected end of file",
 
-	[E_NO_FREE_TX_DESC] = "no free transmission desc available",
+	[E_TX_FULL] = "transmit queue full",
 	[E_PKT_TOO_LONG] = "packet size exceeds limit",
+	[E_RX_EMPTY] = "receive queue empty",
 
 	[E_NO_DISK]	= "no free space on disk",
 	[E_MAX_OPEN]	= "too many files are open",

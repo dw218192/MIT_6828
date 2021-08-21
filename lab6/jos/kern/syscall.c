@@ -600,14 +600,42 @@ sys_time_msec(void)
 	return time_msec();
 }
 
+// Transmit a packet to network in user space
+//
+// Return 0 on success, < 0 on error.  Errors are:
+//  -E_TX_FULL if the transmission queue is full
+//  -E_PKT_TOO_LONG if the packet size exceeds limit
 static int
-sys_net_transmit(void* data, uint16_t len)
+sys_net_transmit(const void* data, uint16_t len)
 {
 	user_mem_assert(curenv, data, len, 0);
 
 	return e1000_transmit(data, len);
 }
 
+// Receive a packet from network in user space
+//
+// Return the size of the data written on success, < 0 on error.  Errors are:
+//  -E_RX_EMPTY if no packet is received.
+static int
+sys_net_recv(void* buf)
+{
+	static char recv_tmp_buf[E1000_RBS];
+	int r;
+	r = e1000_receive(recv_tmp_buf);
+	
+	if(r > 0)
+	{
+		user_mem_assert(curenv, buf, r, 0);
+
+		if(rcr3() != PADDR(curenv->env_pgdir))
+			lcr3(PADDR(curenv->env_pgdir));
+		
+		memcpy(buf, recv_tmp_buf, r);
+	}
+
+	return r;
+}
 // Dispatches to the correct kernel function, passing the arguments.
 int32_t
 syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5)
@@ -656,7 +684,9 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		case SYS_time_msec:
 			return sys_time_msec();
 		case SYS_net_transmit:
-			return sys_net_transmit((void*)a1, (uint16_t)a2);
+			return sys_net_transmit((const void*)a1, (uint16_t)a2);
+		case SYS_net_recv:
+			return sys_net_recv((void*)a1);
 		default:
 			return -E_INVAL;
 	}

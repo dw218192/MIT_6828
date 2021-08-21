@@ -135,7 +135,13 @@ sys_time_msec(void)
 }
 
 int
-sys_net_transmit(void* data, uint16_t len)
+sys_net_transmit(const void* data, uint16_t len)
 {
 	return (int) syscall(SYS_net_transmit, 0, (uint32_t)data, len, 0, 0, 0);
+}
+
+int
+sys_net_recv(void* buf)
+{
+	return (int) syscall(SYS_net_recv, 0, (uint32_t)buf, 0, 0, 0, 0);
 }
